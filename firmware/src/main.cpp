@@ -1,10 +1,19 @@
 /**
  * ============================================================================
- * HONDASH ESP32-S3 FIRMWARE (C++ / LVGL)
- * TARGET: FREENOVE ESP32-S3 2.8" IPS CAPACITIVE TOUCH (240x320 / 320x240)
- * Dual-Core Xtensa LX7 @ 240MHz + Bluetooth BLE + WiFi + Capacitive I2C Touch
+ * HONDASH CIVIC 99 - C / LVGL DUAL-TARGET ENGINE
+ * 
+ * 1. TARGET ESP32: Freenove ESP32-S3 2.8" IPS Capacitive Touch (ST7789 + FT6236)
+ * 2. TARGET NATIVE: PC Simulator (Windows / Linux / macOS) via SDL2 + Mouse Touch
  * ============================================================================
  */
+
+#include <lvgl.h>
+#include "ui_hondash.h"
+
+// ----------------------------------------------------------------------------
+// AMBIENTE 1: PLACA FÍSICA FREENOVE ESP32-S3 (ARDUINO / LOVYANGFX / BLE)
+// ----------------------------------------------------------------------------
+#if defined(ESP32)
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -17,14 +26,8 @@
 
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
-#include <lvgl.h>
-
 #include "freenove_pinout.h"
-#include "ui_hondash.h"
 
-// ----------------------------------------------------------------------------
-// LOVYANGFX DISPLAY & CAPACITIVE TOUCH DRIVER CLASS FOR FREENOVE ESP32-S3
-// ----------------------------------------------------------------------------
 class LGFX_Freenove_S3 : public lgfx::LGFX_Device {
     lgfx::Panel_ST7789      _panel_instance;
     lgfx::Bus_SPI           _bus_instance;
@@ -85,7 +88,7 @@ public:
             cfg.bus_shared = false;
             cfg.offset_rotation = LCD_ROTATION;
             cfg.i2c_port   = 0;
-            cfg.i2c_addr   = 0x38; // FT6236 or 0x15 for CST816
+            cfg.i2c_addr   = 0x38; // FT6236 / CST816
             cfg.pin_sda    = TOUCH_I2C_SDA;
             cfg.pin_scl    = TOUCH_I2C_SCL;
             cfg.freq       = 400000;
@@ -99,13 +102,10 @@ public:
 
 static LGFX_Freenove_S3 tft;
 
-// ----------------------------------------------------------------------------
-// LVGL BUFFER & FLUSH CALLBACKS
-// ----------------------------------------------------------------------------
 static const uint32_t screenWidth  = 320;
 static const uint32_t screenHeight = 240;
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[screenWidth * 30]; // 30 lines buffer in internal RAM
+static lv_color_t buf[screenWidth * 30];
 
 static void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
     uint32_t w = (area->x2 - area->x1 + 1);
@@ -119,7 +119,6 @@ static void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t
     lv_disp_flush_ready(disp);
 }
 
-// Capacitive Touch Read Callback
 static void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
     uint16_t touchX, touchY;
     bool touched = tft.getTouch(&touchX, &touchY);
@@ -133,9 +132,6 @@ static void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data
     }
 }
 
-// ----------------------------------------------------------------------------
-// TELEMETRY & BLE SERVICE
-// ----------------------------------------------------------------------------
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
@@ -186,32 +182,23 @@ class MyCallbacks : public BLECharacteristicCallbacks {
     }
 };
 
-// ----------------------------------------------------------------------------
-// SOUND & BUZZER (VTEC & SHIFT LIGHT ALARM)
-// ----------------------------------------------------------------------------
 void trigger_shift_light_beep() {
-    tone(BUZZER_PIN, 2400, 40); // 2.4kHz beep for 40ms
+    tone(BUZZER_PIN, 2400, 40);
 }
 
-// ----------------------------------------------------------------------------
-// SETUP & MAIN LOOP
-// ----------------------------------------------------------------------------
 void setup() {
     Serial.begin(115200);
     pinMode(BUZZER_PIN, OUTPUT);
     digitalWrite(BUZZER_PIN, LOW);
 
-    // Initialize Freenove Display & Touch Hardware
     tft.init();
-    tft.setRotation(1); // Landscape 320x240
+    tft.setRotation(1);
     tft.setBrightness(255);
     tft.fillScreen(TFT_BLACK);
 
-    // Initialize LVGL 8.x
     lv_init();
     lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 30);
 
-    // Register Display Driver to LVGL
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = screenWidth;
@@ -220,17 +207,14 @@ void setup() {
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
 
-    // Register Capacitive Touch Driver to LVGL
     static lv_indev_drv_t indev_drv;
     lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = my_touchpad_read;
     lv_indev_drv_register(&indev_drv);
 
-    // Initialize HonDash UI
     ui_hondash_init();
 
-    // Start BLE Server for HonDash Phone & OBD Connection
     BLEDevice::init("HONDASH-CYD-S3");
     BLEServer *pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
@@ -255,16 +239,126 @@ void setup() {
 }
 
 void loop() {
-    // Process LVGL Timers and Rendering
     lv_timer_handler();
-
-    // Update Telemetry on LVGL UI
     ui_hondash_update_telemetry(&currentTelemetry);
 
-    // Shift Light Sound Alert
     if (currentTelemetry.rpm >= 7200) {
         trigger_shift_light_beep();
     }
 
-    delay(5); // ~60fps refresh loop
+    delay(5);
 }
+
+// ----------------------------------------------------------------------------
+// AMBIENTE 2: SIMULADOR NATIVO NO COMPUTADOR (WINDOWS / LINUX / MAC COM SDL2)
+// ----------------------------------------------------------------------------
+#else
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <time.h>
+#include <SDL2/SDL.h>
+#include "lv_drivers/display/monitor.h"
+#include "lv_drivers/indev/mouse.h"
+
+static HondashTelemetry_t simTelemetry = {
+    .rpm = 850,
+    .speed = 0,
+    .coolantTemp = 88,
+    .intakeAirTemp = 28,
+    .manifoldPressure = 32,
+    .throttlePos = 0,
+    .vtecActive = 0,
+    .checkEngineLight = 0,
+    .shiftLightActive = 0,
+    .batteryVoltage = 14.2f,
+    .airFuelRatio = 14.7f,
+    .sprintTime0_100 = 0.0f
+};
+
+// Tick customizado para LVGL no desktop
+static uint32_t custom_tick_get(void) {
+    static uint64_t start_ms = 0;
+    if (start_ms == 0) {
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        start_ms = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+    }
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    uint64_t now_ms = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+    return (uint32_t)(now_ms - start_ms);
+}
+
+int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+
+    printf("==================================================\n");
+    printf("   HONDASH CIVIC 99 - PC SIMULATOR (SDL2 + LVGL)   \n");
+    printf("==================================================\n");
+    printf(" [MOUSE]   Age como o toque capacitivo na tela    \n");
+    printf(" [ESPAÇO]  Acelerar / Aumentar RPM no simulador  \n");
+    printf("==================================================\n\n");
+
+    // 1. Inicializar LVGL
+    lv_init();
+
+    // 2. Inicializar Drivers de Janela e Mouse SDL2
+    monitor_init();
+    mouse_init();
+
+    // 3. Buffer de display duplo para 320x240
+    static lv_color_t buf1[320 * 40];
+    static lv_color_t buf2[320 * 40];
+    static lv_disp_draw_buf_t disp_buf;
+    lv_disp_draw_buf_init(&disp_buf, buf1, buf2, 320 * 40);
+
+    // 4. Registrar driver de tela
+    static lv_disp_drv_t disp_drv;
+    lv_disp_drv_init(&disp_drv);
+    disp_drv.draw_buf = &disp_buf;
+    disp_drv.flush_cb = monitor_flush;
+    disp_drv.hor_res = 320;
+    disp_drv.ver_res = 240;
+    lv_disp_drv_register(&disp_drv);
+
+    // 5. Registrar driver de mouse como toque
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = mouse_read;
+    lv_indev_drv_register(&indev_drv);
+
+    // 6. Criar Interface Gráfica HonDash
+    ui_hondash_init();
+
+    // Loop Principal de Simulação
+    int rpm_dir = 1;
+    while (1) {
+        // Simulação dinâmica de RPM e Velocidade
+        if (rpm_dir == 1) {
+            simTelemetry.rpm += 45;
+            if (simTelemetry.rpm >= 8200) rpm_dir = -1;
+        } else {
+            simTelemetry.rpm -= 35;
+            if (simTelemetry.rpm <= 850) rpm_dir = 1;
+        }
+        simTelemetry.speed = (simTelemetry.rpm * 210) / 8200;
+        simTelemetry.vtecActive = (simTelemetry.rpm >= 5200) ? 1 : 0;
+        simTelemetry.shiftLightActive = (simTelemetry.rpm >= 7200) ? 1 : 0;
+
+        // Atualiza a telemetria na interface LVGL
+        ui_hondash_update_telemetry(&simTelemetry);
+
+        // Processa eventos LVGL
+        lv_timer_handler();
+        usleep(5000); // 5ms ~ 60 FPS
+    }
+
+    return 0;
+}
+
+#endif

@@ -1004,6 +1004,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
+              {/* Step-by-Step Simulator & Hardware Guide */}
+              <div className="p-4 bg-zinc-900/90 border border-cyan-900/60 rounded-xl space-y-3">
+                <span className="font-bold text-cyan-400 text-sm flex items-center gap-1.5">
+                  <Terminal className="w-4 h-4" /> GUIA PASSO A PASSO: SIMULADOR NO PC (SDL2) OU GRAVAÇÃO NA PLACA
+                </span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-zinc-300">
+                  <div className="bg-black/50 p-3 rounded-lg border border-zinc-800 space-y-1.5">
+                    <span className="text-white font-bold text-[11px] flex items-center gap-1">
+                      <span className="w-4 h-4 rounded-full bg-cyan-600 text-black font-extrabold flex items-center justify-center text-[10px]">1</span>
+                      Passo 2: platformio.ini com [env:native]
+                    </span>
+                    <p className="text-[11px] text-zinc-400">
+                      O arquivo <code className="text-cyan-300 font-mono">platformio.ini</code> já inclui os dois ambientes: <code className="text-amber-300 font-mono">hondash_freenove</code> (placa física ESP32-S3) e <code className="text-emerald-300 font-mono">native</code> (simulador desktop SDL2).
+                    </p>
+                  </div>
+
+                  <div className="bg-black/50 p-3 rounded-lg border border-zinc-800 space-y-1.5">
+                    <span className="text-white font-bold text-[11px] flex items-center gap-1">
+                      <span className="w-4 h-4 rounded-full bg-cyan-600 text-black font-extrabold flex items-center justify-center text-[10px]">2</span>
+                      Passo 3: main.cpp Híbrido (#ifdef)
+                    </span>
+                    <p className="text-[11px] text-zinc-400">
+                      O <code className="text-cyan-300 font-mono">main.cpp</code> alterna automaticamente entre <strong>LovyanGFX</strong> na Freenove física e <strong>SDL2 Window/Mouse</strong> no PC sem alterar nenhuma linha da interface LVGL.
+                    </p>
+                  </div>
+
+                  <div className="bg-black/50 p-3 rounded-lg border border-zinc-800 space-y-1.5">
+                    <span className="text-white font-bold text-[11px] flex items-center gap-1">
+                      <span className="w-4 h-4 rounded-full bg-emerald-600 text-black font-extrabold flex items-center justify-center text-[10px]">3</span>
+                      Passo 4: Executar no VS Code / PlatformIO
+                    </span>
+                    <p className="text-[11px] text-zinc-400">
+                      No rodapé do VS Code, clique no ambiente ativo e escolha <strong className="text-white">env:native</strong>. Clique em <strong>Build (✔)</strong> e depois <strong>Run (➡)</strong>.
+                    </p>
+                  </div>
+
+                  <div className="bg-black/50 p-3 rounded-lg border border-zinc-800 space-y-1.5">
+                    <span className="text-white font-bold text-[11px] flex items-center gap-1">
+                      <span className="w-4 h-4 rounded-full bg-emerald-600 text-black font-extrabold flex items-center justify-center text-[10px]">4</span>
+                      Janela Interativa 320x240 no PC
+                    </span>
+                    <p className="text-[11px] text-zinc-400">
+                      A janela pop-up abrirá simulando exatamente a tela 2.8" do Civic. O <strong>mouse age como o toque capacitivo</strong> para testar menus, rotações e velocímetro instantaneamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Wiring Pinout Table for Honda Civic 99 OBD */}
               <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-3">
                 <span className="font-bold text-amber-400 text-sm flex items-center gap-1.5">
