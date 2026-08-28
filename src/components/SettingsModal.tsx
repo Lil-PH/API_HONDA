@@ -4,6 +4,12 @@ import { CAR_PRESETS, THEME_COLORS } from '../utils/carPresets';
 import { HondaBrandLogo } from './HondaBrandLogos';
 import { saveVehicleImage, deleteVehicleImage, downloadVehicleMedia } from '../utils/vehicleImageStorage';
 import {
+  FREENOVE_ESP32S3_PINOUT_CODE,
+  FREENOVE_MAIN_CPP_CODE,
+  FREENOVE_PLATFORMIO_INI,
+  downloadFirmwareFile
+} from '../utils/esp32FirmwareExporter';
+import {
   X,
   Palette,
   Car,
@@ -24,7 +30,10 @@ import {
   Image as ImageIcon,
   Trash2,
   Link as LinkIcon,
-  CheckCircle2
+  CheckCircle2,
+  Copy,
+  Terminal,
+  Layers
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -59,6 +68,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [carImageSaveNotice, setCarImageSaveNotice] = useState<string>('');
   const [customUrlInput, setCustomUrlInput] = useState<string>('');
+  const [cCodeFileTab, setCCodeFileTab] = useState<'main.cpp' | 'freenove_pinout.h' | 'platformio.ini'>('main.cpp');
+  const [copyCodeNotice, setCopyCodeNotice] = useState<string>('');
 
   const carFileInputRef = useRef<HTMLInputElement | null>(null);
   const bootLogoFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -255,7 +266,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               activeTab === 'esp32_guide' ? 'bg-zinc-800 text-white font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Cpu className="w-4 h-4" /> <span>CYD ESP32-S3</span>
+            <Cpu className="w-4 h-4 text-cyan-400" /> <span>Freenove ESP32-S3 (C / LVGL)</span>
           </button>
 
           <button
@@ -857,39 +868,166 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* 6. GUIA CYD ESP32-S3 */}
+          {/* 6. GUIA & CÓDIGO C / LVGL FREENOVE ESP32-S3 */}
           {activeTab === 'esp32_guide' && (
-            <div className="space-y-4 text-xs font-mono-dash">
-              <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-2">
+            <div className="space-y-5 text-xs font-mono-dash">
+              {/* Hardware Spec Card */}
+              <div className="p-4 bg-zinc-900/90 border border-zinc-700 rounded-xl space-y-3 shadow-lg">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Cpu className="w-5 h-5 text-cyan-400" />
+                    <div>
+                      <span className="font-bold text-white text-sm block">
+                        FREENOVE ESP32-S3 CYD 2.8" IPS TOUCH CAPACITIVO
+                      </span>
+                      <span className="text-[11px] text-zinc-400">
+                        Dual-Core Xtensa 32-bit @ 240 MHz | 240x320 IPS | Touch FT6236/CST816 | LVGL v8/v9 | C/C++
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2 py-1 bg-cyan-950/80 border border-cyan-700 text-cyan-300 text-[10px] font-bold rounded">
+                    COMPATIBILIDADE 100% C / LVGL
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-zinc-500 block">CONTROLADOR TELA</span>
+                    <span className="text-white font-bold">ST7789 SPI (320x240)</span>
+                  </div>
+                  <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-zinc-500 block">TIPO DE TOUCH</span>
+                    <span className="text-cyan-400 font-bold">Capacitivo I2C (0x38)</span>
+                  </div>
+                  <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-zinc-500 block">MICROCONTROLADOR</span>
+                    <span className="text-white font-bold">ESP32-S3 Dual 240MHz</span>
+                  </div>
+                  <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-zinc-500 block">CONECTIVIDADE</span>
+                    <span className="text-emerald-400 font-bold">BLE 5.0 + Wi-Fi Hotspot</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Download Firmware Files */}
+              <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-white block text-sm">Download dos Arquivos em Código C / C++</span>
+                    <span className="text-[11px] text-zinc-400">
+                      Arquivos prontos para compilar no Arduino IDE, PlatformIO ou ESP-IDF com biblioteca LVGL.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    onClick={() => downloadFirmwareFile(FREENOVE_MAIN_CPP_CODE, 'main.cpp')}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                  >
+                    <Download className="w-3.5 h-3.5 text-cyan-400" /> main.cpp (Código C++)
+                  </button>
+
+                  <button
+                    onClick={() => downloadFirmwareFile(FREENOVE_ESP32S3_PINOUT_CODE, 'freenove_pinout.h')}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-400" /> freenove_pinout.h (Pinagem)
+                  </button>
+
+                  <button
+                    onClick={() => downloadFirmwareFile(FREENOVE_PLATFORMIO_INI, 'platformio.ini')}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer text-xs font-bold"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" /> platformio.ini (Config)
+                  </button>
+                </div>
+              </div>
+
+              {/* In-App Code Viewer */}
+              <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-zinc-900 border-b border-zinc-800">
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => setCCodeFileTab('main.cpp')}
+                      className={`px-3 py-1 rounded text-xs transition-colors cursor-pointer ${
+                        cCodeFileTab === 'main.cpp' ? 'bg-zinc-800 text-cyan-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      main.cpp (C++ / LVGL Engine)
+                    </button>
+                    <button
+                      onClick={() => setCCodeFileTab('freenove_pinout.h')}
+                      className={`px-3 py-1 rounded text-xs transition-colors cursor-pointer ${
+                        cCodeFileTab === 'freenove_pinout.h' ? 'bg-zinc-800 text-amber-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      freenove_pinout.h (GPIOs)
+                    </button>
+                    <button
+                      onClick={() => setCCodeFileTab('platformio.ini')}
+                      className={`px-3 py-1 rounded text-xs transition-colors cursor-pointer ${
+                        cCodeFileTab === 'platformio.ini' ? 'bg-zinc-800 text-emerald-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      platformio.ini
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const code = cCodeFileTab === 'main.cpp'
+                        ? FREENOVE_MAIN_CPP_CODE
+                        : cCodeFileTab === 'freenove_pinout.h'
+                        ? FREENOVE_ESP32S3_PINOUT_CODE
+                        : FREENOVE_PLATFORMIO_INI;
+                      navigator.clipboard.writeText(code);
+                      setCopyCodeNotice(`✓ ${cCodeFileTab} copiado!`);
+                      setTimeout(() => setCopyCodeNotice(''), 3000);
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-[11px] transition-colors cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>{copyCodeNotice || 'COPIAR'}</span>
+                  </button>
+                </div>
+
+                <div className="p-3 max-h-64 overflow-y-auto font-mono text-[11px] leading-relaxed text-zinc-300 select-text">
+                  <pre className="whitespace-pre overflow-x-auto">
+                    {cCodeFileTab === 'main.cpp'
+                      ? FREENOVE_MAIN_CPP_CODE
+                      : cCodeFileTab === 'freenove_pinout.h'
+                      ? FREENOVE_ESP32S3_PINOUT_CODE
+                      : FREENOVE_PLATFORMIO_INI}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Wiring Pinout Table for Honda Civic 99 OBD */}
+              <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-3">
                 <span className="font-bold text-amber-400 text-sm flex items-center gap-1.5">
-                  <Cpu className="w-4 h-4" /> GUIA DE ADAPTAÇÃO: PLAQUINHA CYD ESP32-S3
+                  <Layers className="w-4 h-4" /> PINAGEM E LIGAÇÃO NO HONDA CIVIC 99 (K-LINE / 3-PIN DLC)
                 </span>
-                <p className="text-zinc-300">
-                  A plaquinha <strong>CYD (Cheap Yellow Display ESP32-S3)</strong> possui tela TFT IPS touch,
-                  controlador gráfico RGB e Bluetooth/Wi-Fi integrado.
-                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                  <div className="bg-black/60 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-cyan-400 font-bold block">GPIO 18 (RX) / GPIO 17 (TX)</span>
+                    <span className="text-zinc-400">Transceptor K-Line L9637D / ISO9141 da ECU P28/P30/P72/HonDash.</span>
+                  </div>
+                  <div className="bg-black/60 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-amber-400 font-bold block">GPIO 15 (Buzzer PWM)</span>
+                    <span className="text-zinc-400">Buzzer piezoelétrico para alarme sonoro de VTEC e Shift Light.</span>
+                  </div>
+                  <div className="bg-black/60 p-2.5 rounded-lg border border-zinc-800">
+                    <span className="text-emerald-400 font-bold block">Alimentação 5V / GND</span>
+                    <span className="text-zinc-400">Regulador Step-Down 12V ➔ 5V 2A pós-chave (ACC) do Civic.</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-2">
-                <span className="font-bold text-white text-sm">Opções de Execução no CYD ESP32:</span>
-                <ol className="list-decimal pl-5 space-y-2 text-zinc-300">
-                  <li>
-                    <strong>Modo Web Kiosk / Hotspot (Mais fácil & 100% fiel):</strong>
-                    <br />
-                    O ESP32-S3 cria um Access Point Wi-Fi e serve esta aplicação Web diretamente para a tela integrada
-                    ou celulares e tablets no painel do Civic.
-                  </li>
-                  <li>
-                    <strong>Modo BLE Gateway:</strong>
-                    <br />
-                    O ESP32-S3 lê os dados do OBD-II da ECU HonDash via K-Line / CAN-Bus e transmite via Bluetooth Low
-                    Energy (BLE UART) para seu celular ou computador rodando este app.
-                  </li>
-                </ol>
-              </div>
-
+              {/* JSON Protocol for UART */}
               <div className="p-3 bg-black border border-zinc-800 rounded-xl">
-                <span className="text-[11px] text-zinc-500 block mb-1">PROTOCOLO DE TELEMETRIA SUPORTADO (JSON UART 115200):</span>
+                <span className="text-[11px] text-zinc-500 block mb-1">PROTOCOLO JSON SUPORTADO VIA UART / BLUETOOTH BLE:</span>
                 <code className="text-emerald-400 text-[11px]">
                   {`{"rpm":3450,"spd":72,"ect":89,"iat":32,"map":98,"tps":25,"vtec":0,"afr":14.7,"volt":14.2}`}
                 </code>
