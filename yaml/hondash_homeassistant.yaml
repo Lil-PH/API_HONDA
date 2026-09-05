@@ -1,0 +1,184 @@
+# ==============================================================================
+# HonDASH Cyber HUD - Home Assistant Lovelace Dashboard (YAML)
+# Mode: YAML Storage / lovelace_dashboards
+# Theme: Cyberpunk High-Contrast Type R HUD
+# ==============================================================================
+
+title: "HonDASH Cyber HUD"
+views:
+  - title: "Cyber HUD"
+    path: "hondash-hud"
+    icon: "mdi:car-sports"
+    badges:
+      - entity: sensor.hondash_vtec_status
+        name: "VTEC"
+      - entity: sensor.hondash_ecu_connection
+        name: "ECU"
+      - entity: sensor.hondash_coolant_temp
+        name: "CLT"
+      - entity: sensor.hondash_battery_voltage
+        name: "BATERIA"
+
+    cards:
+      # Header HUD Banner
+      - type: custom:mushroom-title-card
+        title: "HONDASH CYBER HUD"
+        subtitle: "HONDA CIVIC TELEMETRY // TYPE R EDITION"
+
+      # 2x2 Quadrant Grid
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          # --------------------------------------------------------------------
+          # QUADRANTE 1: VELOCÍMETRO & RPM
+          # --------------------------------------------------------------------
+          - type: vertical-stack
+            cards:
+              - type: custom:gauge-card
+                entity: sensor.hondash_speed_kmh
+                title: "VELOCIDADE"
+                unit: "KM/H"
+                min: 0
+                max: 260
+                severity:
+                  green: 0
+                  yellow: 120
+                  red: 180
+
+              - type: custom:bar-card
+                entity: sensor.hondash_engine_rpm
+                name: "TACHOMETER"
+                unit_of_measurement: "RPM"
+                min: 0
+                max: 9000
+                severity:
+                  - color: "#22c55e"
+                    from: 0
+                    to: 5500
+                  - color: "#f59e0b"
+                    from: 5500
+                    to: 7000
+                  - color: "#ef4444"
+                    from: 7000
+                    to: 9000
+
+              - type: entity
+                entity: sensor.hondash_current_gear
+                name: "MARCHA ENGATADA"
+                icon: "mdi:car-shift-pattern"
+
+          # --------------------------------------------------------------------
+          # QUADRANTE 2: RELÓGIO & DATA DIGITAL HUD
+          # --------------------------------------------------------------------
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.time
+                name: "HORÁRIO HUD"
+                icon: "mdi:clock-digital"
+                primary_info: "state"
+                secondary_info: "last-changed"
+                icon_color: "red"
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.date
+                name: "DATA DO SISTEMA"
+                icon: "mdi:calendar-month-outline"
+                icon_color: "amber"
+
+              - type: markdown
+                content: |
+                  <div style="text-align: center; padding: 12px; border: 1px solid #ef4444; border-radius: 8px; background: #121215;">
+                    <div style="font-family: monospace; font-size: 28px; font-weight: bold; color: #ffffff;">
+                      {{ now().strftime('%H:%M:%S') }}
+                    </div>
+                    <div style="font-family: monospace; font-size: 11px; color: #ef4444; letter-spacing: 2px;">
+                      {{ now().strftime('%A, %d %B %Y') | upper }}
+                    </div>
+                  </div>
+
+          # --------------------------------------------------------------------
+          # QUADRANTE 3: STATUS DO CIVIC & DIAGNÓSTICO
+          # --------------------------------------------------------------------
+          - type: vertical-stack
+            cards:
+              - type: picture
+                image: "/local/civic_coupe_profile.png"
+                tap_action:
+                  action: more-info
+                  entity: sensor.hondash_vehicle_profile
+
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-chips-card
+                    chips:
+                      - type: entity
+                        entity: binary_sensor.hondash_vtec_lamp
+                        name: "VTEC"
+                        icon_color: "red"
+                      - type: entity
+                        entity: binary_sensor.hondash_check_engine
+                        name: "CEL"
+                        icon_color: "amber"
+                      - type: entity
+                        entity: binary_sensor.hondash_ecu_ready
+                        name: "ECU OK"
+                        icon_color: "green"
+
+          # --------------------------------------------------------------------
+          # QUADRANTE 4: EQUALIZADOR DE ÁUDIO & MULTIMÍDIA
+          # --------------------------------------------------------------------
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-media-player-card
+                entity: media_player.hondash_civic_audio
+                name: "HONDA CIVIC AUDIO SYSTEM"
+                icon_type: entity-picture
+                show_volume_level: true
+                volume_controls:
+                  - volume_buttons
+                  - volume_set
+
+              - type: markdown
+                content: |
+                  <div style="display: flex; justify-content: space-around; align-items: flex-end; height: 50px; background: #09090b; padding: 6px; border-radius: 6px; border: 1px solid #27272a;">
+                    <div style="width: 8px; height: 35px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 22px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 44px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 50px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 38px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 28px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 18px; background: #ef4444; border-radius: 2px;"></div>
+                    <div style="width: 8px; height: 12px; background: #ef4444; border-radius: 2px;"></div>
+                  </div>
+                  <p style="text-align: center; font-size: 9px; color: #71717a; margin-top: 4px;">60Hz · 150Hz · 400Hz · 1kHz · 2.5kHz · 6kHz · 10kHz · 16kHz</p>
+
+      # ------------------------------------------------------------------------
+      # BARRA INFERIOR DE SENSORES DOCK
+      # ------------------------------------------------------------------------
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-entity-card
+            entity: sensor.hondash_coolant_temp
+            name: "CLT"
+            icon: "mdi:coolant-temperature"
+            icon_color: "blue"
+
+          - type: custom:mushroom-entity-card
+            entity: sensor.hondash_battery_voltage
+            name: "BAT"
+            icon: "mdi:car-battery"
+            icon_color: "green"
+
+          - type: custom:mushroom-entity-card
+            entity: sensor.hondash_fuel_level
+            name: "FUEL"
+            icon: "mdi:gas-station"
+            icon_color: "amber"
+
+          - type: custom:mushroom-entity-card
+            entity: sensor.hondash_intake_temp
+            name: "IAT"
+            icon: "mdi:thermometer-lines"
+            icon_color: "cyan"

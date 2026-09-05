@@ -1,6 +1,6 @@
 {
-  "name": "HonDash CYD ESP32 OBD Interface",
-  "description": "Painel digital responsivo e customizável inspirado no HonDash para ESP32-S3 CYD, PC e celular com telemetria OBD/ECU e boot logo Honda.",
-  "requestFramePermissions": [],
+  "name": "HondApp",
+  "description": "Painel digital automotivo HondApp",
+  "requestFramePermissions": ["microphone", "geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

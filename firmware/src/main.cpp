@@ -246,6 +246,33 @@ void loop() {
         trigger_shift_light_beep();
     }
 
+    // Transmissão periódica de telemetria via BLE Notifications e USB Serial (20 Hz)
+    static uint32_t lastNotify = 0;
+    if (millis() - lastNotify >= 50) {
+        lastNotify = millis();
+        if (deviceConnected && pCharacteristic) {
+            char jsonBuf[256];
+            snprintf(jsonBuf, sizeof(jsonBuf),
+                "{\"rpm\":%d,\"spd\":%d,\"ect\":%d,\"iat\":%d,\"map\":%d,\"tps\":%d,\"vtec\":%d,\"volt\":%.1f,\"afr\":%.1f,\"insideTemp\":%.1f,\"outsideTemp\":%.1f,\"gear\":%d,\"fuel\":%d}",
+                currentTelemetry.rpm,
+                currentTelemetry.speed,
+                currentTelemetry.coolantTemp,
+                currentTelemetry.intakeAirTemp,
+                currentTelemetry.manifoldPressure,
+                currentTelemetry.throttlePos,
+                currentTelemetry.vtecActive ? 1 : 0,
+                currentTelemetry.batteryVoltage,
+                currentTelemetry.airFuelRatio,
+                currentTelemetry.insideTemp,
+                currentTelemetry.outsideTemp,
+                currentTelemetry.gear,
+                currentTelemetry.fuelLevel
+            );
+            pCharacteristic->setValue(jsonBuf);
+            pCharacteristic->notify();
+        }
+    }
+
     delay(5);
 }
 

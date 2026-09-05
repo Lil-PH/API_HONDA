@@ -1,0 +1,387 @@
+# ==============================================================================
+# HonDASH Cyber HUD - OpenHASP Declarative Layout (YAML / JSONL)
+# Platform: ESP32 OpenHASP Firmware
+# Target: 320x240 Display (ESP32-CYD)
+# ==============================================================================
+
+plate:
+  name: "hondash-cyd"
+  comment: "OpenHASP Cyber HUD for Honda Civic"
+
+pages:
+  # ----------------------------------------------------------------------------
+  # PÁGINA 1: DASHBOARD PRINCIPAL
+  # ----------------------------------------------------------------------------
+  - page: 1
+    comment: "Main HonDASH Cyber HUD View"
+    objects:
+      # Fundo do Painel
+      - id: 10
+        obj: "obj"
+        x: 0
+        y: 0
+        w: 320
+        h: 240
+        bg_color: "#09090b"
+        border_width: 0
+
+      # ------------------------------------------------------------------------
+      # QUADRANTE 1: VELOCIDADE & RPM
+      # ------------------------------------------------------------------------
+      - id: 100
+        obj: "obj"
+        x: 4
+        y: 4
+        w: 154
+        h: 98
+        bg_color: "#121215"
+        border_color: "#27272a"
+        border_width: 1
+        radius: 8
+
+      - id: 101
+        obj: "label"
+        x: 10
+        y: 8
+        w: 140
+        h: 14
+        text: "VELOCIDADE // VEL"
+        text_color: "#a1a1aa"
+        text_font: 12
+
+      - id: 102
+        obj: "label"
+        x: 10
+        y: 22
+        w: 80
+        h: 46
+        text: "0"
+        text_color: "#ffffff"
+        text_font: 32
+
+      - id: 103
+        obj: "label"
+        x: 75
+        y: 46
+        w: 50
+        h: 16
+        text: "KM/H"
+        text_color: "#ef4444"
+        text_font: 14
+
+      - id: 104
+        obj: "btn"
+        x: 120
+        y: 10
+        w: 24
+        h: 24
+        radius: 6
+        bg_color: "#201215"
+        border_color: "#ef4444"
+        border_width: 1
+        text: "N"
+        text_color: "#ffffff"
+
+      - id: 105
+        obj: "bar"
+        x: 10
+        y: 74
+        w: 134
+        h: 12
+        min: 0
+        max: 9000
+        val: 0
+        bg_color: "#1e1e24"
+        indicator_bg_color: "#ef4444"
+
+      - id: 106
+        obj: "label"
+        x: 10
+        y: 87
+        w: 134
+        h: 12
+        text: "0 RPM"
+        text_color: "#71717a"
+        text_font: 10
+
+      # ------------------------------------------------------------------------
+      # QUADRANTE 2: RELÓGIO & DATA HUD
+      # ------------------------------------------------------------------------
+      - id: 200
+        obj: "btn"
+        x: 162
+        y: 4
+        w: 154
+        h: 98
+        bg_color: "#121215"
+        border_color: "#27272a"
+        border_width: 1
+        radius: 8
+
+      - id: 201
+        obj: "label"
+        x: 168
+        y: 8
+        w: 140
+        h: 14
+        text: "HORA // DATA HUD"
+        text_color: "#a1a1aa"
+        text_font: 12
+
+      - id: 202
+        obj: "label"
+        x: 168
+        y: 30
+        w: 140
+        h: 36
+        text: "12:00:00"
+        text_color: "#ffffff"
+        text_font: 24
+        align: "center"
+
+      - id: 203
+        obj: "label"
+        x: 168
+        y: 72
+        w: 140
+        h: 16
+        text: "TER, 05 SET 2026"
+        text_color: "#ef4444"
+        text_font: 12
+        align: "center"
+
+      # ------------------------------------------------------------------------
+      # QUADRANTE 3: STATUS DO CIVIC
+      # ------------------------------------------------------------------------
+      - id: 300
+        obj: "btn"
+        x: 4
+        y: 106
+        w: 154
+        h: 98
+        bg_color: "#121215"
+        border_color: "#27272a"
+        border_width: 1
+        radius: 8
+
+      - id: 301
+        obj: "label"
+        x: 10
+        y: 110
+        w: 140
+        h: 14
+        text: "CIVIC // DIAGNOSTIC"
+        text_color: "#a1a1aa"
+        text_font: 12
+
+      - id: 302
+        obj: "label"
+        x: 10
+        y: 134
+        w: 140
+        h: 24
+        text: "==[ CIVIC COUPE ]=="
+        text_color: "#ef4444"
+        text_font: 16
+        align: "center"
+
+      - id: 303
+        obj: "btn"
+        x: 12
+        y: 172
+        w: 60
+        h: 20
+        radius: 4
+        bg_color: "#27272a"
+        text: "VTEC"
+        text_color: "#ffffff"
+        text_font: 10
+
+      - id: 304
+        obj: "btn"
+        x: 78
+        y: 172
+        w: 70
+        h: 20
+        radius: 4
+        bg_color: "#14532d"
+        text: "ECU OK"
+        text_color: "#86efac"
+        text_font: 10
+
+      # ------------------------------------------------------------------------
+      # QUADRANTE 4: ESPECTRO DE ÁUDIO
+      # ------------------------------------------------------------------------
+      - id: 400
+        obj: "obj"
+        x: 162
+        y: 106
+        w: 154
+        h: 98
+        bg_color: "#121215"
+        border_color: "#27272a"
+        border_width: 1
+        radius: 8
+
+      - id: 401
+        obj: "label"
+        x: 168
+        y: 110
+        w: 140
+        h: 14
+        text: "ÁUDIO // EQUALIZADOR"
+        text_color: "#a1a1aa"
+        text_font: 12
+
+      - id: 410
+        obj: "bar"
+        x: 170
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 65
+        indicator_bg_color: "#ef4444"
+
+      - id: 411
+        obj: "bar"
+        x: 186
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 45
+        indicator_bg_color: "#ef4444"
+
+      - id: 412
+        obj: "bar"
+        x: 202
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 80
+        indicator_bg_color: "#ef4444"
+
+      - id: 413
+        obj: "bar"
+        x: 218
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 92
+        indicator_bg_color: "#ef4444"
+
+      - id: 414
+        obj: "bar"
+        x: 234
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 70
+        indicator_bg_color: "#ef4444"
+
+      - id: 415
+        obj: "bar"
+        x: 250
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 55
+        indicator_bg_color: "#ef4444"
+
+      - id: 416
+        obj: "bar"
+        x: 266
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 35
+        indicator_bg_color: "#ef4444"
+
+      - id: 417
+        obj: "bar"
+        x: 282
+        y: 135
+        w: 12
+        h: 46
+        min: 0
+        max: 100
+        val: 20
+        indicator_bg_color: "#ef4444"
+
+      - id: 420
+        obj: "label"
+        x: 168
+        y: 186
+        w: 140
+        h: 12
+        text: "CIVIC AUDIO // AUX"
+        text_color: "#71717a"
+        text_font: 10
+        align: "center"
+
+      # ------------------------------------------------------------------------
+      # BARRA INFERIOR DE SENSORES
+      # ------------------------------------------------------------------------
+      - id: 500
+        obj: "obj"
+        x: 4
+        y: 208
+        w: 312
+        h: 28
+        bg_color: "#121215"
+        border_color: "#27272a"
+        border_width: 1
+        radius: 6
+
+      - id: 501
+        obj: "label"
+        x: 12
+        y: 214
+        text: "CLT: 88°C"
+        text_color: "#ffffff"
+        text_font: 12
+
+      - id: 502
+        obj: "label"
+        x: 88
+        y: 214
+        text: "BAT: 14.2V"
+        text_color: "#ffffff"
+        text_font: 12
+
+      - id: 503
+        obj: "label"
+        x: 168
+        y: 214
+        text: "GAS: 72%"
+        text_color: "#ffffff"
+        text_font: 12
+
+      - id: 504
+        obj: "label"
+        x: 240
+        y: 214
+        text: "VTEC"
+        text_color: "#ef4444"
+        text_font: 12
+
+      - id: 505
+        obj: "label"
+        x: 282
+        y: 214
+        text: "CEL"
+        text_color: "#52525b"
+        text_font: 12

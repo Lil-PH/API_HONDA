@@ -1,0 +1,299 @@
+# ==============================================================================
+# HonDASH Cyber HUD - Master System Architecture & UI Specification
+# Format: YAML 1.2
+# ==============================================================================
+metadata:
+  name: "HonDASH Cyber HUD"
+  version: "2.4.0"
+  author: "HonDASH Embedded Engineering Team"
+  license: "MIT"
+  description: >
+    Especificação declarativa completa em YAML da arquitetura do painel digital
+    HonDASH Cyber HUD para Honda Civic (compatível com ESP32, ESPHome, LVGL e Web).
+
+hardware_targets:
+  - id: "esp32_cyd"
+    name: "ESP32-CYD (Cheap Yellow Display)"
+    soc: "ESP32-D0WDQ6-V3 (Dual Core 240MHz)"
+    display: "ILI9341 2.8\" / 3.2\" 320x240 SPI"
+    touch: "XPT2046 Resistive SPI"
+  - id: "esp32_s3_cyd4827"
+    name: "ESP32-S3 Sunton 4.3\" / 5.0\" 480x272 / 800x480"
+    soc: "ESP32-S3 (Dual Core 240MHz, 8MB PSRAM, 16MB Flash)"
+    display: "ST7262 RGB Interface"
+    touch: "GT911 Capacitive I2C"
+  - id: "stm32_blackpill"
+    name: "STM32F401 / STM32F411 BlackPill + ST7789"
+    display: "ST7789 240x240 / 240x320 SPI"
+
+display_settings:
+  orientation: "landscape"
+  resolution:
+    width: 320
+    height: 240
+    aspect_ratio: "4:3"
+  color_depth: "RGB565_16BIT"
+  frame_rate_target_fps: 60
+  anti_aliasing: true
+  double_buffering: true
+
+themes:
+  default_theme: "red"
+  palettes:
+    red:
+      name: "Type R Crimson"
+      primary: "#ef4444"
+      secondary: "#dc2626"
+      accent: "#f87171"
+      background: "#09090b"
+      surface: "#18181b"
+      border: "#27272a"
+      glow: "rgba(239, 68, 68, 0.35)"
+      text_primary: "#ffffff"
+      text_secondary: "#a1a1aa"
+    cyan:
+      name: "Cyber Neon Cyan"
+      primary: "#06b6d4"
+      secondary: "#0891b2"
+      accent: "#22d3ee"
+      background: "#080c14"
+      surface: "#0e1726"
+      border: "#162844"
+      glow: "rgba(6, 182, 212, 0.35)"
+      text_primary: "#ffffff"
+      text_secondary: "#94a3b8"
+    amber:
+      name: "JDM Vintage Amber"
+      primary: "#f59e0b"
+      secondary: "#d97706"
+      accent: "#fbbf24"
+      background: "#0f0c08"
+      surface: "#1c170d"
+      border: "#2e2515"
+      glow: "rgba(245, 158, 11, 0.35)"
+      text_primary: "#ffffff"
+      text_secondary: "#a8a29e"
+    purple:
+      name: "Tokyo Night Synthwave"
+      primary: "#a855f7"
+      secondary: "#9333ea"
+      accent: "#c084fc"
+      background: "#0c0814"
+      surface: "#170f27"
+      border: "#281a44"
+      glow: "rgba(168, 85, 247, 0.35)"
+      text_primary: "#ffffff"
+      text_secondary: "#cbd5e1"
+    green:
+      name: "Spoon Racing Green"
+      primary: "#22c55e"
+      secondary: "#16a34a"
+      accent: "#4ade80"
+      background: "#080f0a"
+      surface: "#0e1c12"
+      border: "#162e1c"
+      glow: "rgba(34, 197, 94, 0.35)"
+      text_primary: "#ffffff"
+      text_secondary: "#94a3b8"
+    white:
+      name: "Championship Minimalist"
+      primary: "#f8fafc"
+      secondary: "#e2e8f0"
+      accent: "#ffffff"
+      background: "#050505"
+      surface: "#121212"
+      border: "#262626"
+      glow: "rgba(248, 250, 252, 0.25)"
+      text_primary: "#ffffff"
+      text_secondary: "#737373"
+
+ui_layout:
+  type: "grid_2x2_plus_bottom_bar"
+  padding_px: 6
+  gap_px: 6
+  quadrants:
+    - id: "quadrant_1_speed_rpm"
+      name: "Tachometer & Speedometer"
+      grid_position: { row: 1, col: 1, row_span: 1, col_span: 1 }
+      widgets:
+        - type: "digital_number"
+          id: "lbl_speed"
+          data_source: "telemetry.speed_kmh"
+          font_size: "36pt"
+          align: "center"
+          sub_label: "KM/H"
+        - type: "badge"
+          id: "badge_gear"
+          data_source: "telemetry.gear"
+          mapping:
+            "-1": "R"
+            "0": "N"
+            "1": "1"
+            "2": "2"
+            "3": "3"
+            "4": "4"
+            "5": "5"
+            "6": "6"
+        - type: "progress_bar_arc"
+          id: "bar_rpm"
+          data_source: "telemetry.rpm"
+          min: 0
+          max: 9000
+          redline_start: 7000
+          redline_color: "#ef4444"
+
+    - id: "quadrant_2_clock_hud"
+      name: "Digital HUD Clock & Calendar"
+      grid_position: { row: 1, col: 2, row_span: 1, col_span: 1 }
+      interactive: true
+      on_click_action: "toggle_time_format_12_24"
+      widgets:
+        - type: "digital_clock"
+          id: "hud_clock_time"
+          show_seconds: true
+          separator_pulse_hz: 1.0
+          font_family: "Orbitron / Montserrat Bold"
+          format: "24h_or_12h"
+        - type: "calendar_label"
+          id: "hud_clock_date"
+          format: "%A, %d %b %Y"
+          transform: "uppercase"
+
+    - id: "quadrant_3_vehicle_profile"
+      name: "Civic Profile & Diagnostic Status"
+      grid_position: { row: 2, col: 1, row_span: 1, col_span: 1 }
+      interactive: true
+      on_click_action: "open_fullscreen_vehicle_modal"
+      widgets:
+        - type: "silhouette_image"
+          id: "civic_silhouette"
+          vector_svg_or_png: "civic_coupe_profile"
+        - type: "underglow_effect"
+          id: "neon_underglow"
+          color_binding: "theme.primary"
+          pulse_effect: true
+        - type: "status_pill"
+          id: "vtec_pill"
+          label: "VTEC SYSTEM"
+          active_when: "telemetry.vtec_active == true"
+          active_color: "#ef4444"
+        - type: "status_pill"
+          id: "ecu_status_pill"
+          label: "ECU ONLINE"
+          active_when: "connection.online == true"
+
+    - id: "quadrant_4_audio_spectrum"
+      name: "Equalizer & Audio Spectrum"
+      grid_position: { row: 2, col: 2, row_span: 1, col_span: 1 }
+      interactive: true
+      on_click_action: "cycle_audio_animation_mode"
+      widgets:
+        - type: "bar_equalizer"
+          id: "audio_fft_bars"
+          bands_count: 8
+          frequency_labels: ["60Hz", "150Hz", "400Hz", "1kHz", "2.5kHz", "6kHz", "10kHz", "16kHz"]
+          bar_color: "theme.primary"
+          peak_indicator: true
+          decay_rate: 0.88
+        - type: "now_playing_marquee"
+          id: "track_label"
+          default_text: "HONDA CIVIC AUDIO SYSTEM // AUX"
+
+  bottom_bar:
+    id: "telemetry_dock"
+    grid_position: { row: 3, col: 1, row_span: 1, col_span: 2 }
+    height_px: 28
+    gauges:
+      - id: "gauge_clt"
+        label: "CLT"
+        unit: "°C"
+        data_source: "telemetry.coolant_temp_c"
+        warning_above: 102.0
+        critical_above: 110.0
+      - id: "gauge_battery"
+        label: "BAT"
+        unit: "V"
+        data_source: "telemetry.battery_volts"
+        warning_below: 12.0
+        warning_above: 15.0
+      - id: "gauge_fuel"
+        label: "FUEL"
+        unit: "%"
+        data_source: "telemetry.fuel_pct"
+        warning_below: 15.0
+      - id: "indicator_vtec"
+        label: "VTEC"
+        data_source: "telemetry.vtec_active"
+        indicator_type: "lamp"
+        lamp_color: "#ef4444"
+      - id: "indicator_cel"
+        label: "CEL"
+        data_source: "telemetry.check_engine"
+        indicator_type: "lamp"
+        lamp_color: "#f59e0b"
+
+telemetry_pids:
+  protocol: "ISO 14230-4 KWP / ISO 15765-4 CAN"
+  baud_rates: [10400, 38400, 500000]
+  pids:
+    - name: "ENGINE_RPM"
+      service: "0x01"
+      pid: "0x0C"
+      formula: "((A * 256) + B) / 4"
+      unit: "rpm"
+    - name: "VEHICLE_SPEED"
+      service: "0x01"
+      pid: "0x0D"
+      formula: "A"
+      unit: "km/h"
+    - name: "COOLANT_TEMP"
+      service: "0x01"
+      pid: "0x05"
+      formula: "A - 40"
+      unit: "celsius"
+    - name: "INTAKE_AIR_TEMP"
+      service: "0x01"
+      pid: "0x0F"
+      formula: "A - 40"
+      unit: "celsius"
+    - name: "THROTTLE_POS"
+      service: "0x01"
+      pid: "0x11"
+      formula: "(A * 100) / 255"
+      unit: "percent"
+    - name: "CONTROL_MODULE_VOLTAGE"
+      service: "0x01"
+      pid: "0x42"
+      formula: "((A * 256) + B) / 1000"
+      unit: "volts"
+    - name: "FUEL_LEVEL"
+      service: "0x01"
+      pid: "0x2F"
+      formula: "(A * 100) / 255"
+      unit: "percent"
+    - name: "HONDA_VTEC_ENGAGEMENT"
+      service: "0x22"
+      pid: "0x1102"
+      formula: "(A & 0x04) != 0"
+      unit: "boolean"
+
+bluetooth_ble:
+  device_name_filter: ["HonDASH", "OBDII", "VEEPEAK", "OBDLink"]
+  service_uuid: "0000fff0-0000-1000-8000-00805f9b34fb"
+  characteristic_tx_uuid: "0000fff1-0000-1000-8000-00805f9b34fb"
+  characteristic_rx_uuid: "0000fff2-0000-1000-8000-00805f9b34fb"
+  polling_interval_ms: 50
+
+sound_alerts:
+  vtec_kick:
+    enabled: true
+    audio_synthesis: "dual_sine_synthesizer"
+    base_freq_hz: 520
+    boost_freq_hz: 880
+    duration_ms: 180
+  shift_beep:
+    enabled: true
+    trigger_rpm: 6900
+    tone_freq_hz: 2400
+    beep_count: 2
+    duration_ms: 80

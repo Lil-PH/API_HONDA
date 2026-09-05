@@ -1,0 +1,522 @@
+# ==============================================================================
+# HonDASH Cyber HUD - ESPHome Native LVGL Firmware (YAML)
+# Target: ESP32 / ESP32-CYD (2.8" / 3.2" 320x240 ILI9341 + XPT2046)
+# Component: Native ESPHome 'lvgl' Declarative Engine
+# ==============================================================================
+
+esphome:
+  name: hondash-cyber-hud
+  friendly_name: "HonDASH Cyber HUD"
+  comment: "Honda Civic Digital Cyber HUD Dashboard powered by ESPHome & LVGL"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# ------------------------------------------------------------------------------
+# Wi-Fi & OTA (Opcional para conectividade e atualizações wireless na garagem)
+# ------------------------------------------------------------------------------
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "HonDASH-Hotspot"
+    password: "hondashpassword"
+
+captive_portal:
+
+ota:
+  - platform: esphome
+
+api:
+  encryption:
+    key: !secret api_key
+
+logger:
+  level: INFO
+
+# ------------------------------------------------------------------------------
+# Hardware Pins (SPI Display ILI9341 + Touch XPT2046 do ESP32-CYD)
+# ------------------------------------------------------------------------------
+spi:
+  - id: tft_spi
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+
+display:
+  - platform: ili9xxx
+    id: hondash_tft
+    model: ILI9341
+    spi_id: tft_spi
+    cs_pin: GPIO15
+    dc_pin: GPIO2
+    reset_pin: GPIO0
+    dimensions:
+      width: 320
+      height: 240
+    rotation: 90
+    auto_clear_enabled: false
+
+touchscreen:
+  - platform: xpt2046
+    id: hondash_touch
+    spi_id: tft_spi
+    cs_pin: GPIO33
+    interrupt_pin: GPIO36
+    calibration:
+      x_min: 300
+      x_max: 3800
+      y_min: 300
+      y_max: 3800
+
+# ------------------------------------------------------------------------------
+# Fontes Tipográficas
+# ------------------------------------------------------------------------------
+font:
+  - file: "gfonts://Orbitron"
+    id: font_speed_large
+    size: 40
+    glyphs: "0123456789 KM/H"
+
+  - file: "gfonts://Orbitron"
+    id: font_clock_medium
+    size: 26
+    glyphs: "0123456789: APM"
+
+  - file: "gfonts://Share Tech Mono"
+    id: font_tech_mono
+    size: 13
+
+  - file: "gfonts://Share Tech Mono"
+    id: font_tech_small
+    size: 10
+
+# ------------------------------------------------------------------------------
+# Sensores Automotivos de Telemetria (Simulados ou via CAN-Bus / BLE OBD2)
+# ------------------------------------------------------------------------------
+sensor:
+  - platform: template
+    id: vehicle_speed
+    name: "Vehicle Speed"
+    unit_of_measurement: "km/h"
+    accuracy_decimals: 0
+    update_interval: 100ms
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_speed_val
+            text: !lambda return to_string((int)x);
+
+  - platform: template
+    id: engine_rpm
+    name: "Engine RPM"
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    update_interval: 50ms
+    on_value:
+      then:
+        - lvgl.bar.update:
+            id: bar_rpm_meter
+            value: !lambda return (int)x;
+        - lvgl.label.update:
+            id: lbl_rpm_val
+            text: !lambda return to_string((int)x) + " RPM";
+
+  - platform: template
+    id: coolant_temp
+    name: "Coolant Temp (CLT)"
+    unit_of_measurement: "°C"
+    accuracy_decimals: 0
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_clt_val
+            text: !lambda return to_string((int)x) + "°C";
+
+  - platform: template
+    id: battery_voltage
+    name: "Battery Voltage"
+    unit_of_measurement: "V"
+    accuracy_decimals: 1
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_bat_val
+            text: !lambda return str_sprintf("%.1fV", x);
+
+  - platform: template
+    id: fuel_level
+    name: "Fuel Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: lbl_fuel_val
+            text: !lambda return to_string((int)x) + "%";
+
+binary_sensor:
+  - platform: template
+    id: vtec_active_sensor
+    name: "VTEC Status"
+    on_state:
+      then:
+        - lvgl.obj.update:
+            id: pill_vtec_lamp
+            bg_color: !lambda return x ? 0xEF4444 : 0x27272A;
+
+# Relógio Interno RTC / SNTP
+time:
+  - platform: sntp
+    id: sntp_time
+    timezone: "America/Sao_Paulo"
+    on_time:
+      - seconds: 0
+        minutes: "*"
+        then:
+          - lvgl.label.update:
+              id: lbl_hud_time
+              text: !lambda return id(sntp_time).now().strftime("%H:%M");
+          - lvgl.label.update:
+              id: lbl_hud_date
+              text: !lambda return id(sntp_time).now().strftime("%a, %d %b %Y");
+
+# ==============================================================================
+# MOTOR DECLARATIVO NATIVO LVGL EM YAML (ESPHOME)
+# ==============================================================================
+lvgl:
+  display: hondash_tft
+  touchscreens:
+    - hondash_touch
+  buffer_size: 50%
+  bg_color: 0x09090B
+  color_depth: 16
+
+  # ----------------------------------------------------------------------------
+  # Estilos Reutilizáveis (Paleta Type R & Cyberpunk)
+  # ----------------------------------------------------------------------------
+  styles:
+    style_card:
+      bg_color: 0x121215
+      border_color: 0x27272A
+      border_width: 1
+      radius: 10
+      pad_all: 8
+      shadow_width: 0
+
+    style_card_active:
+      border_color: 0xEF4444
+      border_width: 1
+
+    style_text_title:
+      text_color: 0xA1A1AA
+      text_font: font_tech_small
+
+    style_text_bold:
+      text_color: 0xFFFFFF
+      text_font: font_tech_mono
+
+  # ----------------------------------------------------------------------------
+  # Telas e Layout do HonDASH Cyber HUD
+  # ----------------------------------------------------------------------------
+  pages:
+    - id: main_dash_page
+      bg_color: 0x09090B
+      widgets:
+        # ======================================================================
+        # QUADRANTE 1: VELOCIDADE & RPM (Superior Esquerdo)
+        # ======================================================================
+        - obj:
+            id: quad_1_speed
+            x: 4
+            y: 4
+            width: 154
+            height: 98
+            styles: [style_card]
+            widgets:
+              - label:
+                  x: 6
+                  y: 4
+                  text: "VELOCIDADE // VEL"
+                  styles: [style_text_title]
+
+              - label:
+                  id: lbl_speed_val
+                  x: 10
+                  y: 18
+                  text: "0"
+                  text_font: font_speed_large
+                  text_color: 0xFFFFFF
+
+              - label:
+                  x: 75
+                  y: 42
+                  text: "KM/H"
+                  text_font: font_tech_mono
+                  text_color: 0xEF4444
+
+              - obj:
+                  id: badge_gear
+                  x: 116
+                  y: 8
+                  width: 26
+                  height: 26
+                  radius: 6
+                  bg_color: 0x221215
+                  border_color: 0xEF4444
+                  border_width: 1
+                  widgets:
+                    - label:
+                        id: lbl_gear_val
+                        align: CENTER
+                        text: "N"
+                        text_font: font_tech_mono
+                        text_color: 0xFFFFFF
+
+              # Barra de RPM
+              - bar:
+                  id: bar_rpm_meter
+                  x: 6
+                  y: 74
+                  width: 138
+                  height: 12
+                  min_value: 0
+                  max_value: 9000
+                  value: 0
+                  bg_color: 0x1E1E24
+                  indicator:
+                    bg_color: 0xEF4444
+                    radius: 2
+
+              - label:
+                  id: lbl_rpm_val
+                  x: 6
+                  y: 87
+                  text: "0 RPM"
+                  styles: [style_text_title]
+
+        # ======================================================================
+        # QUADRANTE 2: RELÓGIO DIGITAL & DATA HUD (Superior Direito)
+        # ======================================================================
+        - obj:
+            id: quad_2_clock
+            x: 162
+            y: 4
+            width: 154
+            height: 98
+            styles: [style_card]
+            clickable: true
+            on_click:
+              then:
+                - logger.log: "HUD Clock clicado - alternando formato 12/24h"
+            widgets:
+              - label:
+                  x: 6
+                  y: 4
+                  text: "HORA // DATA HUD"
+                  styles: [style_text_title]
+
+              - label:
+                  id: lbl_hud_time
+                  align: CENTER
+                  y: -4
+                  text: "12:00"
+                  text_font: font_clock_medium
+                  text_color: 0xFFFFFF
+
+              - label:
+                  id: lbl_hud_date
+                  align: BOTTOM_MID
+                  y: -6
+                  text: "TER, 05 SET 2026"
+                  styles: [style_text_title]
+                  text_color: 0xEF4444
+
+        # ======================================================================
+        # QUADRANTE 3: SILHUETA DO CIVIC (Inferior Esquerdo)
+        # ======================================================================
+        - obj:
+            id: quad_3_civic
+            x: 4
+            y: 106
+            width: 154
+            height: 98
+            styles: [style_card]
+            clickable: true
+            on_click:
+              then:
+                - lvgl.page.show: page_fullscreen_car
+            widgets:
+              - label:
+                  x: 6
+                  y: 4
+                  text: "CIVIC // DIAGNOSTIC"
+                  styles: [style_text_title]
+
+              - label:
+                  align: CENTER
+                  y: -6
+                  text: "==[ CIVIC COUPE ]=="
+                  text_font: font_tech_mono
+                  text_color: 0xEF4444
+
+              - obj:
+                  id: pill_vtec_lamp
+                  x: 6
+                  y: 72
+                  width: 64
+                  height: 16
+                  radius: 4
+                  bg_color: 0x27272A
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "VTEC"
+                        text_font: font_tech_small
+                        text_color: 0xFFFFFF
+
+              - obj:
+                  id: pill_ecu_online
+                  x: 74
+                  y: 72
+                  width: 70
+                  height: 16
+                  radius: 4
+                  bg_color: 0x14532D
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "ECU OK"
+                        text_font: font_tech_small
+                        text_color: 0x86EFAC
+
+        # ======================================================================
+        # QUADRANTE 4: ESPECTRO DE ÁUDIO (Inferior Direito)
+        # ======================================================================
+        - obj:
+            id: quad_4_audio
+            x: 162
+            y: 106
+            width: 154
+            height: 98
+            styles: [style_card]
+            widgets:
+              - label:
+                  x: 6
+                  y: 4
+                  text: "ÁUDIO // EQUALIZADOR"
+                  styles: [style_text_title]
+
+              - bar: { x: 10, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 65, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 26, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 45, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 42, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 80, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 58, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 92, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 74, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 70, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 90, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 55, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 106, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 35, indicator: { bg_color: 0xEF4444 } }
+              - bar: { x: 122, y: 28, width: 12, height: 50, min_value: 0, max_value: 100, value: 20, indicator: { bg_color: 0xEF4444 } }
+
+              - label:
+                  align: BOTTOM_MID
+                  y: -4
+                  text: "HONDA CIVIC AUDIO // AUX"
+                  styles: [style_text_title]
+
+        # ======================================================================
+        # BARRA INFERIOR DE SENSORES DOCK (CLT, BATERIA, COMBUSTÍVEL, VTEC, CEL)
+        # ======================================================================
+        - obj:
+            id: bottom_dock_bar
+            x: 4
+            y: 208
+            width: 312
+            height: 28
+            styles: [style_card]
+            pad_all: 4
+            widgets:
+              # CLT
+              - label:
+                  x: 8
+                  y: 4
+                  text: "CLT:"
+                  styles: [style_text_title]
+              - label:
+                  id: lbl_clt_val
+                  x: 34
+                  y: 4
+                  text: "88°C"
+                  styles: [style_text_bold]
+
+              # BATERIA
+              - label:
+                  x: 86
+                  y: 4
+                  text: "BAT:"
+                  styles: [style_text_title]
+              - label:
+                  id: lbl_bat_val
+                  x: 114
+                  y: 4
+                  text: "14.2V"
+                  styles: [style_text_bold]
+
+              # COMBUSTÍVEL
+              - label:
+                  x: 168
+                  y: 4
+                  text: "GAS:"
+                  styles: [style_text_title]
+              - label:
+                  id: lbl_fuel_val
+                  x: 198
+                  y: 4
+                  text: "72%"
+                  styles: [style_text_bold]
+
+              # VTEC STATUS
+              - label:
+                  x: 240
+                  y: 4
+                  text: "VTEC"
+                  text_font: font_tech_mono
+                  text_color: 0xEF4444
+
+              # CEL
+              - label:
+                  x: 280
+                  y: 4
+                  text: "CEL"
+                  text_font: font_tech_mono
+                  text_color: 0x52525B
+
+    # ==========================================================================
+    # MODAL EXPANDIDO / TELA CHEIA DO CARRO COM RELÓGIO HUD
+    # ==========================================================================
+    - id: page_fullscreen_car
+      bg_color: 0x050507
+      clickable: true
+      on_click:
+        then:
+          - lvgl.page.show: main_dash_page
+      widgets:
+        - label:
+            align: TOP_MID
+            y: 10
+            text: "HONDA CIVIC // TELEMETRIA EXPANDIDA"
+            text_font: font_tech_mono
+            text_color: 0xEF4444
+
+        - label:
+            align: CENTER
+            y: -10
+            text: "===[ HONDA CIVIC COUPE EJ/EK ]==="
+            text_font: font_clock_medium
+            text_color: 0xFFFFFF
+
+        - label:
+            align: BOTTOM_MID
+            y: -15
+            text: "[ TOQUE EM QUALQUER LUGAR PARA RETORNAR AO PAINEL ]"
+            styles: [style_text_title]

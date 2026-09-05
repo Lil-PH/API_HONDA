@@ -45,6 +45,8 @@ export interface AppSettings {
   customCarImageUrl: string;
   showUnderglow: boolean;
   underglowColor: string;
+  showVehicleClock?: boolean;
+  clockFormat?: '24h' | '12h';
 
   // Boot sequence
   bootLogoType: BootLogoType;

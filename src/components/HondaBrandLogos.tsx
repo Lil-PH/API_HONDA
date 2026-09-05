@@ -81,68 +81,54 @@ export const HondaBrandLogo: React.FC<HondaBrandLogoProps> = ({
     );
   }
 
-  if (type === 'mugen') {
-    return (
-      <div className={`flex flex-col items-center justify-center ${className}`}>
-        <div className="flex items-center space-x-2">
-          {/* Mugen Tricolor bar */}
-          <div className="flex h-8 w-14 overflow-hidden rounded shadow-lg">
-            <div className="w-1/3 bg-black flex items-center justify-center text-[10px] font-bold text-white font-chakra">無限</div>
-            <div className="w-1/3 bg-red-600"></div>
-            <div className="w-1/3 bg-amber-400"></div>
-          </div>
-          <span className="font-orbitron font-extrabold text-xl tracking-wider text-white">
-            MUGEN <span className="text-red-500 text-sm font-semibold">POWER</span>
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  if (type === 'spoon') {
-    return (
-      <div className={`flex flex-col items-center justify-center ${className}`}>
-        <div className="bg-yellow-400 text-blue-900 px-4 py-2 rounded-lg font-black font-orbitron text-lg tracking-widest border-2 border-blue-900 shadow-[0_0_15px_rgba(250,204,21,0.6)]">
-          SPOON <span className="text-cyan-600">SPORTS</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Default: Honda Classic Emblem
+  // Default: Honda Classic Silver Emblem (H Prata)
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
-      <svg viewBox="0 0 120 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+      <svg viewBox="0 0 120 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
         <defs>
-          <linearGradient id="silverH" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="silverHGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="25%" stopColor="#e2e8f0" />
             <stop offset="50%" stopColor="#94a3b8" />
-            <stop offset="100%" stopColor="#475569" />
+            <stop offset="75%" stopColor="#cbd5e1" />
+            <stop offset="100%" stopColor="#f8fafc" />
+          </linearGradient>
+          <linearGradient id="silverPlateBg" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1e293b" />
+            <stop offset="60%" stopColor="#0f172a" />
+            <stop offset="100%" stopColor="#020617" />
           </linearGradient>
         </defs>
-        {/* Trapezoid Frame */}
+        {/* Trapezoid Frame with deep dark background */}
         <path
           d="M 12 15 C 12 8, 18 5, 28 5 L 92 5 C 102 5, 108 8, 108 15 L 100 85 C 100 92, 94 95, 84 95 L 36 95 C 26 95, 20 92, 20 85 Z"
-          fill="none"
-          stroke={color || '#ffffff'}
+          fill="url(#silverPlateBg)"
+          stroke="url(#silverHGrad)"
           strokeWidth="3.5"
+        />
+        {/* Inner Accent Line */}
+        <path
+          d="M 17 18 L 103 18 L 95 82 L 25 82 Z"
+          fill="none"
+          stroke="rgba(255,255,255,0.25)"
+          strokeWidth="1"
         />
         {/* Honda H */}
         <path
-          d="M 29 24 L 38 24 L 46 76 L 36 76 Z"
-          fill="url(#silverH)"
+          d="M 28 24 L 38 24 L 46 76 L 36 76 Z"
+          fill="url(#silverHGrad)"
         />
         <path
-          d="M 81 24 L 90 24 L 82 76 L 73 76 Z"
-          fill="url(#silverH)"
+          d="M 82 24 L 92 24 L 84 76 L 74 76 Z"
+          fill="url(#silverHGrad)"
         />
         <path
-          d="M 29 24 Q 60 16 90 24 L 86 31 Q 60 25 33 31 Z"
-          fill="url(#silverH)"
+          d="M 28 24 Q 60 16 92 24 L 88 32 Q 60 26 32 32 Z"
+          fill="url(#silverHGrad)"
         />
         <path
-          d="M 37 45 Q 60 48 83 45 L 81 52 Q 60 55 39 52 Z"
-          fill="url(#silverH)"
+          d="M 37 45 Q 60 48 83 45 L 81 53 Q 60 56 39 53 Z"
+          fill="url(#silverHGrad)"
         />
       </svg>
     </div>

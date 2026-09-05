@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'motion/react';
-import { AppSettings, DashboardLayout, TelemetryData } from './types';
+import { AppSettings, TelemetryData } from './types';
 import { BootScreen } from './components/BootScreen';
 import { CyberHudDashboard } from './components/CyberHudDashboard';
-import { HonDashClassicGauges } from './components/HonDashClassicGauges';
-import { TrackTelemetryView } from './components/TrackTelemetryView';
-import { DiagnosticsDtcView } from './components/DiagnosticsDtcView';
 import { ControlsBar } from './components/ControlsBar';
 import { SettingsModal } from './components/SettingsModal';
-import { SimulatorControls } from './components/SimulatorControls';
+import { UpdateCheckModal } from './components/UpdateCheckModal';
+import { LvglExportModal } from './components/LvglExportModal';
+import { YamlExportModal } from './components/YamlExportModal';
 import { HonDashDeviceManager, ConnectionStatus } from './utils/bleService';
 import { playVtecKickSound, playShiftBeep } from './utils/soundEffects';
 import { getVehicleImage, saveVehicleImage } from './utils/vehicleImageStorage';
@@ -18,18 +17,20 @@ const STORAGE_KEY = 'hondash_cyd_settings_v1';
 const DEFAULT_SETTINGS: AppSettings = {
   themeColor: 'red',
   customColorHex: '#ef4444',
-  carModelName: 'HONDA CIVIC SEDAN // B16A2',
-  carEngineSpec: 'B16A2 DOHC VTEC 1.6L // PGM-FI ECU',
+  carModelName: '',
+  carEngineSpec: '',
   carPreset: 'civic99_sedan',
   carImageMode: 'preset',
   customCarImageUrl: '',
   showUnderglow: true,
   underglowColor: '#ef4444',
+  showVehicleClock: true,
+  clockFormat: '24h',
 
   bootLogoType: 'honda_classic',
   customBootLogoUrl: '',
-  bootWelcomeText: 'HONDA CIVIC 1999',
-  bootDurationMs: 2600,
+  bootWelcomeText: '',
+  bootDurationMs: 2200,
   enableBootSound: false,
   enableVtecSound: true,
   enableShiftBeep: true,
@@ -45,36 +46,36 @@ const DEFAULT_SETTINGS: AppSettings = {
   activeLayout: 'cyber_hud',
   audioVisualizerSource: 'simulated',
   devicePreset: 'auto',
-  connectionMode: 'simulation',
+  connectionMode: 'bluetooth',
   wifiEsp32Ip: '192.168.4.1',
   showScanlines: true,
   autoCheckUpdates: true
 };
 
 const INITIAL_TELEMETRY: TelemetryData = {
-  rpm: 850,
+  rpm: 0,
   speed: 0,
   gear: 0, // Neutral
-  ect: 88.0, // Engine coolant
-  iat: 32.0, // Intake air
-  insideTemp: 26.6,
-  outsideTemp: 27.2,
-  map: 35, // Manifold pressure kPa
+  ect: 25.0, // Temperatura de repouso (°C)
+  iat: 25.0, // Arrefecimento/admissão (°C)
+  insideTemp: 25.0,
+  outsideTemp: 25.0,
+  map: 0, // Pressão do coletor kPa
   boostPsi: 0,
-  tps: 0, // Throttle %
-  afr: 14.7, // Stoichiometric
-  batteryVoltage: 14.2,
+  tps: 0, // Borboleta %
+  afr: 14.7, // Razão estequiométrica
+  batteryVoltage: 12.6, // Voltagem da bateria em repouso
   vtecActive: false,
-  oilPressurePsi: 58,
-  fuelLevelPct: 82,
-  timingAdvanceDeg: 14.5,
-  injectorDutyPct: 3.2,
+  oilPressurePsi: 0,
+  fuelLevelPct: 75,
+  timingAdvanceDeg: 0,
+  injectorDutyPct: 0,
   checkEngineLight: false,
   shiftLightActive: false,
   headlightsOn: false,
   doorsOpen: false,
   gForce: { x: 0, y: 0 },
-  audioFrequencies: [0.2, 0.4, 0.6, 0.8, 0.5, 0.7, 0.9, 0.4, 0.8, 0.6, 0.3, 0.7, 0.9, 0.5, 0.3, 0.6, 0.8, 0.4, 0.5, 0.7, 0.3, 0.6, 0.4, 0.2],
+  audioFrequencies: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
   dtcCodes: []
 };
 
@@ -109,10 +110,11 @@ export default function App() {
   // 2. Boot sequence & presentation state
   const [isBooting, setIsBooting] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'customization' | 'connection' | 'esp32_guide' | 'updates'>('customization');
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isLvglModalOpen, setIsLvglModalOpen] = useState(false);
+  const [isYamlModalOpen, setIsYamlModalOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isSimRunning, setIsSimRunning] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(false);
-  const [updateStatus, setUpdateStatus] = useState<string>('Verificando atualizações...');
 
   // 3. Telemetry State
   const [telemetry, setTelemetry] = useState<TelemetryData>(INITIAL_TELEMETRY);
@@ -147,33 +149,7 @@ export default function App() {
     }
   };
 
-  // Auto-Update and Online Sync on Startup
-  useEffect(() => {
-    const performAppStartupUpdate = async () => {
-      try {
-        setUpdateStatus('Sincronizando registros da ECU e assets...');
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'CHECK_FOR_UPDATES' });
-        }
-        // Verify cache and data integrity
-        if (typeof window !== 'undefined' && 'caches' in window) {
-          try {
-            const cacheKeys = await window.caches.keys();
-            console.log('[HonDash OTA] Caches verificados na inicialização:', cacheKeys.length);
-          } catch {
-            // ignore
-          }
-        }
-        setUpdateStatus('Sistema atualizado com sucesso (v2.4.1)!');
-      } catch (err) {
-        console.warn('[HonDash Update] Erro ao sincronizar:', err);
-      }
-    };
-
-    performAppStartupUpdate();
-  }, []);
-
-  // Online / Offline and Auto-update detection
+  // Online / Offline detection
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -199,10 +175,61 @@ export default function App() {
         if (message) setBleMessage(message);
       },
       onTelemetryData: (data) => {
-        setTelemetry((prev) => ({
-          ...prev,
-          ...data
-        }));
+        setTelemetry((prev) => {
+          const nextRpm = typeof data.rpm === 'number' ? data.rpm : prev.rpm;
+          const nextSpeed = typeof data.speed === 'number' ? data.speed : prev.speed;
+          const nextTps = typeof data.tps === 'number' ? data.tps : prev.tps;
+          const vtecThreshold = settings.vtecThresholdRpm || 5200;
+          const shiftThreshold = settings.shiftLightRpm || 7200;
+          const isVtec = typeof data.vtecActive === 'boolean' ? data.vtecActive : nextRpm >= vtecThreshold;
+          const isShift = nextRpm >= shiftThreshold;
+
+          // Play VTEC sound transitions if enabled
+          if (isVtec && !prev.vtecActive && settings.enableVtecSound) {
+            playVtecKickSound();
+          }
+          if (isShift && !prev.shiftLightActive && settings.enableShiftBeep) {
+            playShiftBeep();
+          }
+
+          // Dynamic gear calculation if not directly sent by ECU
+          let currentGear = prev.gear;
+          if (typeof data.gear === 'number') {
+            currentGear = data.gear;
+          } else if (nextSpeed > 3 && nextRpm > 500) {
+            const ratio = nextRpm / nextSpeed;
+            if (ratio > 105) currentGear = 1;
+            else if (ratio > 68) currentGear = 2;
+            else if (ratio > 48) currentGear = 3;
+            else if (ratio > 34) currentGear = 4;
+            else currentGear = 5;
+          } else if (nextSpeed === 0) {
+            currentGear = 0; // Neutral
+          }
+
+          // Real-time audio spectrum harmonics derived from live engine acoustic frequency & TPS
+          const rpmNormalized = Math.max(0, Math.min(1, nextRpm / (settings.revLimitRpm || 8500)));
+          const tpsNormalized = Math.max(0, Math.min(1, nextTps / 100));
+          const timeNow = Date.now();
+          const liveAudioBands = Array.from({ length: 18 }).map((_, i) => {
+            const harmonic = Math.sin((timeNow / 90) * (1 + (i / 18) * 2.5) + i) * 0.3 + 0.5;
+            const vtecBoost = isVtec ? 0.35 : 0;
+            const energy = (rpmNormalized * 0.65 + tpsNormalized * 0.25 + vtecBoost + harmonic * 0.2);
+            return Math.max(0.08, Math.min(1, energy));
+          });
+
+          return {
+            ...prev,
+            ...data,
+            rpm: nextRpm,
+            speed: nextSpeed,
+            tps: nextTps,
+            gear: currentGear,
+            vtecActive: isVtec,
+            shiftLightActive: isShift,
+            audioFrequencies: liveAudioBands
+          };
+        });
       }
     });
     bleManagerRef.current = manager;
@@ -210,169 +237,15 @@ export default function App() {
     return () => {
       manager.disconnect();
     };
-  }, []);
+  }, [settings.vtecThresholdRpm, settings.shiftLightRpm, settings.revLimitRpm, settings.enableVtecSound, settings.enableShiftBeep]);
 
-  // Realistic Engine Physics & Simulator Loop (when running on PC/Mobile)
-  useEffect(() => {
-    if (!isSimRunning && bleStatus === 'disconnected') return;
-
-    const gearRatios = [0, 3.25, 1.90, 1.25, 0.90, 0.70]; // Civic B16/D16 manual gear ratios
-    const finalDrive = 4.266;
-    const tireCircumferenceMeters = 1.85;
-
-    const interval = setInterval(() => {
-      setTelemetry((prev) => {
-        // If connected to real BLE, physics doesn't override real ECU values
-        if (bleStatus === 'connected') {
-          // Generate audio equalizer bands based on real RPM harmonics
-          const rpmNormalized = prev.rpm / (settings.revLimitRpm || 8500);
-          const freqs = prev.audioFrequencies.map((_, i) => {
-            const base = Math.sin(Date.now() / 150 + i * 0.4) * 0.3 + 0.5;
-            return Math.max(0.1, Math.min(1, base * (0.5 + rpmNormalized * 0.7)));
-          });
-          return { ...prev, audioFrequencies: freqs };
-        }
-
-        // --- SIMULATED PHYSICS ---
-        const idle = settings.idleRpm || 850;
-        const redline = settings.revLimitRpm || 8500;
-        const vtecRpm = settings.vtecThresholdRpm || 5200;
-        const shiftRpm = settings.shiftLightRpm || 7200;
-
-        let targetRpm = idle;
-        let newRpm = prev.rpm;
-        let newSpeed = prev.speed;
-        let newMap = 30; // vacuum kPa
-        let newBoost = 0;
-        let newAfr = 14.7;
-
-        if (prev.tps > 0) {
-          // Accelerating
-          const accelerationRate = (prev.tps / 100) * 220;
-          targetRpm = idle + (prev.tps / 100) * (redline - idle);
-          newRpm = Math.min(redline, prev.rpm + accelerationRate);
-
-          // MAP pressure builds
-          newMap = 30 + (prev.tps / 100) * 110;
-          if (newMap > 100) {
-            newBoost = (newMap - 100) * 0.145; // kPa to PSI boost
-          }
-
-          // AFR under load (richer)
-          newAfr = prev.tps > 70 ? 12.2 : prev.tps > 30 ? 13.5 : 14.7;
-        } else {
-          // Decelerating / Engine Braking
-          newRpm = Math.max(idle, prev.rpm - 140);
-          newMap = 28;
-          newAfr = prev.rpm > idle + 300 ? 17.5 : 14.7; // Decel fuel cut
-        }
-
-        // Calculate Vehicle Speed based on Gear
-        if (prev.gear > 0 && prev.gear <= 5) {
-          const ratio = gearRatios[prev.gear] * finalDrive;
-          const calculatedSpeed = Math.round((newRpm / ratio) * (tireCircumferenceMeters * 60) / 1000);
-          newSpeed = calculatedSpeed;
-        } else {
-          // In Neutral or Reverse
-          newSpeed = Math.max(0, prev.speed - 1);
-        }
-
-        // VTEC Engagement check
-        const isVtecNow = newRpm >= vtecRpm && prev.tps >= 20;
-
-        // VTEC Crossover Sound Trigger
-        if (isVtecNow && !vtecPlayedRef.current && soundEnabled && settings.enableVtecSound) {
-          playVtecKickSound();
-          vtecPlayedRef.current = true;
-        } else if (!isVtecNow) {
-          vtecPlayedRef.current = false;
-        }
-
-        // Shift Light Beep Trigger
-        const isShiftLightNow = newRpm >= shiftRpm;
-        if (isShiftLightNow && !shiftBeepPlayedRef.current && soundEnabled && settings.enableShiftBeep) {
-          playShiftBeep();
-          shiftBeepPlayedRef.current = true;
-        } else if (!isShiftLightNow) {
-          shiftBeepPlayedRef.current = false;
-        }
-
-        // G-Force simulation
-        const accelG = prev.tps > 10 ? (prev.tps / 100) * 0.45 : 0;
-        const newGx = Math.sin(Date.now() / 800) * (newSpeed > 20 ? 0.25 : 0.05);
-        const newGy = accelG;
-
-        // Dynamic Audio Equalizer Bars (Engine harmonics)
-        const rpmRatio = newRpm / redline;
-        const newFreqs = prev.audioFrequencies.map((_, i) => {
-          const wave = Math.sin(Date.now() / 120 + i * 0.6) * 0.35 + 0.55;
-          const vtecMultiplier = isVtecNow ? 1.3 : 1.0;
-          return Math.max(0.08, Math.min(1.0, wave * (0.4 + rpmRatio * 0.6) * vtecMultiplier));
-        });
-
-        // Engine Coolant Temperature slowly normalizes to ~89°C
-        let newEct = prev.ect;
-        if (newEct < 89) newEct += 0.02;
-        if (newRpm > 6000 && newEct < 96) newEct += 0.05;
-
-        return {
-          ...prev,
-          rpm: Math.round(newRpm),
-          speed: newSpeed,
-          map: Math.round(newMap),
-          boostPsi: parseFloat(newBoost.toFixed(1)),
-          afr: parseFloat(newAfr.toFixed(2)),
-          vtecActive: isVtecNow,
-          shiftLightActive: isShiftLightNow,
-          gForce: { x: parseFloat(newGx.toFixed(2)), y: parseFloat(newGy.toFixed(2)) },
-          timingAdvanceDeg: parseFloat((14.5 + (newRpm / 1000) * 2.2).toFixed(1)),
-          injectorDutyPct: parseFloat(((newRpm / redline) * (prev.tps / 100) * 85 + 2).toFixed(1)),
-          audioFrequencies: newFreqs,
-          ect: parseFloat(newEct.toFixed(1))
-        };
-      });
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [isSimRunning, bleStatus, settings, soundEnabled]);
-
-  // Keyboard Shortcuts for Driving and Navigation
+  // Keyboard Shortcuts for HondApp controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if typing in inputs
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
 
-      if (e.key === '1') {
-        handleSaveSettings({ ...settings, activeLayout: 'cyber_hud' });
-      } else if (e.key === '2') {
-        handleSaveSettings({ ...settings, activeLayout: 'hondash_classic' });
-      } else if (e.key === '3') {
-        handleSaveSettings({ ...settings, activeLayout: 'track_telemetry' });
-      } else if (e.key === '4') {
-        handleSaveSettings({ ...settings, activeLayout: 'diagnostic_dtc' });
-      } else if (e.key === ' ' || e.code === 'Space') {
-        // Spacebar Rev Burst
-        e.preventDefault();
-        setTelemetry((prev) => ({ ...prev, tps: 100 }));
-      } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
-        setTelemetry((prev) => ({ ...prev, tps: Math.min(100, prev.tps + 25) }));
-      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
-        setTelemetry((prev) => ({ ...prev, tps: Math.max(0, prev.tps - 35) }));
-      } else if (e.key === 'e' || e.key === 'E') {
-        // Shift Up
-        setTelemetry((prev) => ({
-          ...prev,
-          gear: Math.min(5, prev.gear + 1),
-          rpm: Math.max(settings.idleRpm || 850, prev.rpm * 0.72)
-        }));
-      } else if (e.key === 'q' || e.key === 'Q') {
-        // Shift Down
-        setTelemetry((prev) => ({
-          ...prev,
-          gear: Math.max(0, prev.gear - 1),
-          rpm: Math.min(settings.revLimitRpm || 8500, prev.rpm * 1.35)
-        }));
-      } else if (e.key === 'l' || e.key === 'L') {
+      if (e.key === 'l' || e.key === 'L') {
         // Toggle headlights
         setTelemetry((prev) => ({ ...prev, headlightsOn: !prev.headlightsOn }));
       } else if (e.key === 'f' || e.key === 'F') {
@@ -382,20 +255,11 @@ export default function App() {
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
-      if (e.key === ' ' || e.code === 'Space') {
-        setTelemetry((prev) => ({ ...prev, tps: 0 }));
-      }
-    };
-
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [settings]);
+  }, []);
 
   // Fullscreen toggle handler
   const toggleFullscreen = () => {
@@ -406,9 +270,9 @@ export default function App() {
     }
   };
 
-  // Check Updates action
+  // Check Updates action (Manual check available from menu)
   const handleCheckUpdates = () => {
-    alert('Verificação de Atualizações: O HonDash está na versão mais recente (v2.4.0) compatível com CYD ESP32-S3 e PWA.');
+    setIsUpdateModalOpen(true);
   };
 
   const handleConnectBluetooth = () => {
@@ -419,24 +283,8 @@ export default function App() {
     bleManagerRef.current?.connectSerial();
   };
 
-  const handleClearDtc = () => {
-    setTelemetry((prev) => ({
-      ...prev,
-      dtcCodes: [],
-      checkEngineLight: false
-    }));
-  };
-
-  const handleInjectTestDtc = (code: string) => {
-    setTelemetry((prev) => ({
-      ...prev,
-      dtcCodes: Array.from(new Set([...prev.dtcCodes, code])),
-      checkEngineLight: true
-    }));
-  };
-
   return (
-    <div className={`w-screen h-screen bg-black text-white flex flex-col justify-between overflow-hidden relative ${settings.showScanlines ? 'dash-scanlines' : ''}`}>
+    <div className={`w-screen h-screen max-h-screen bg-black text-white flex flex-col justify-between overflow-hidden relative select-none ${settings.showScanlines ? 'dash-scanlines' : ''}`}>
       {/* 1.0 INICIALIZAÇÃO: BOOT SCREEN COM LOGO DA HONDA */}
       <AnimatePresence>
         {isBooting && (
@@ -447,11 +295,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* 2.0 APRESENTAÇÃO APÓS INICIAR: DASHBOARD COMPLETO */}
+      {/* 2.0 APRESENTAÇÃO APÓS INICIAR: DASHBOARD COMPLETO HONDAPP */}
       {/* Top Controls Bar */}
       <ControlsBar
         settings={settings}
-        onUpdateLayout={(layout: DashboardLayout) => handleSaveSettings({ ...settings, activeLayout: layout })}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onRestartBoot={() => setIsBooting(true)}
         isFullscreen={isFullscreen}
@@ -460,57 +307,36 @@ export default function App() {
         onConnectBle={handleConnectBluetooth}
         isOnline={isOnline}
         onCheckUpdates={handleCheckUpdates}
+        onOpenLvglExport={() => setIsLvglModalOpen(true)}
+        onOpenYamlExport={() => setIsYamlModalOpen(true)}
       />
 
       {/* Main Display Area */}
-      <main className="flex-1 w-full overflow-y-auto overflow-x-hidden flex items-center justify-center p-1 sm:p-2">
-        {settings.activeLayout === 'cyber_hud' && (
-          <CyberHudDashboard
-            settings={settings}
-            telemetry={telemetry}
-            onRev={() => {
-              setTelemetry((prev) => ({ ...prev, tps: 100 }));
-              setTimeout(() => {
-                setTelemetry((prev) => ({ ...prev, tps: 0 }));
-              }, 1200);
-            }}
-            onToggleLights={() => {
-              setTelemetry((prev) => ({ ...prev, headlightsOn: !prev.headlightsOn }));
-            }}
-            onToggleDoors={() => {
-              setTelemetry((prev) => ({ ...prev, doorsOpen: !prev.doorsOpen }));
-            }}
-          />
-        )}
-
-        {settings.activeLayout === 'hondash_classic' && (
-          <HonDashClassicGauges settings={settings} telemetry={telemetry} />
-        )}
-
-        {settings.activeLayout === 'track_telemetry' && (
-          <TrackTelemetryView settings={settings} telemetry={telemetry} />
-        )}
-
-        {settings.activeLayout === 'diagnostic_dtc' && (
-          <DiagnosticsDtcView
-            settings={settings}
-            telemetry={telemetry}
-            onClearDtc={handleClearDtc}
-            onInjectTestDtc={handleInjectTestDtc}
-          />
-        )}
+      <main className="flex-1 w-full h-full max-h-full overflow-hidden flex items-center justify-center p-1 sm:p-2">
+        <CyberHudDashboard
+          settings={settings}
+          telemetry={telemetry}
+          bleStatus={bleStatus}
+          onRev={() => {
+            setTelemetry((prev) => ({ ...prev, tps: 100 }));
+            setTimeout(() => {
+              setTelemetry((prev) => ({ ...prev, tps: 0 }));
+            }, 1200);
+          }}
+          onToggleLights={() => {
+            setTelemetry((prev) => ({ ...prev, headlightsOn: !prev.headlightsOn }));
+          }}
+          onToggleDoors={() => {
+            setTelemetry((prev) => ({ ...prev, doorsOpen: !prev.doorsOpen }));
+          }}
+          onOpenCarImageSettings={() => {
+            // Open settings dialog directly on the vehicle customization tab
+            setSettingsInitialTab('customization');
+            setIsSettingsOpen(true);
+          }}
+          onUpdateSettings={handleSaveSettings}
+        />
       </main>
-
-      {/* Interactive Driving Simulator Controls (for testing on PC/Mobile) */}
-      <SimulatorControls
-        settings={settings}
-        telemetry={telemetry}
-        onUpdateTelemetry={setTelemetry}
-        isSimRunning={isSimRunning}
-        onToggleSim={() => setIsSimRunning(!isSimRunning)}
-        soundEnabled={soundEnabled}
-        onToggleSound={() => setSoundEnabled(!soundEnabled)}
-      />
 
       {/* Settings Modal (1.0 Boot Logo, 2.0 Carro Civic 99, Cores, Sensores, ESP32) */}
       {isSettingsOpen && (
@@ -528,8 +354,41 @@ export default function App() {
           bleMessage={bleMessage}
           isOnline={isOnline}
           onCheckUpdates={handleCheckUpdates}
+          initialTab={settingsInitialTab}
+          onOpenLvglExport={() => {
+            setIsSettingsOpen(false);
+            setIsLvglModalOpen(true);
+          }}
+          onOpenYamlExport={() => {
+            setIsSettingsOpen(false);
+            setIsYamlModalOpen(true);
+          }}
         />
       )}
+
+      {/* Central de Atualizações Modal */}
+      <UpdateCheckModal
+        isOpen={isUpdateModalOpen}
+        onClose={() => setIsUpdateModalOpen(false)}
+        settings={settings}
+        isOnline={isOnline}
+      />
+
+      {/* LVGL Embedded C / C++ Modal & Code Exporter */}
+      <LvglExportModal
+        isOpen={isLvglModalOpen}
+        onClose={() => setIsLvglModalOpen(false)}
+        settings={settings}
+        onSwitchToYaml={() => setIsYamlModalOpen(true)}
+      />
+
+      {/* YAML Declarative Config & Exporter Modal */}
+      <YamlExportModal
+        isOpen={isYamlModalOpen}
+        onClose={() => setIsYamlModalOpen(false)}
+        settings={settings}
+        onSwitchToLvgl={() => setIsLvglModalOpen(true)}
+      />
     </div>
   );
 }
