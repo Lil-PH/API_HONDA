@@ -15,9 +15,9 @@ interface BleServiceCallbacks {
   onTelemetryData: (data: Partial<TelemetryData>) => void;
 }
 
-// Known BLE UUIDs for ESP32 HonDash, Nordic UART & ELM327 Adapters
-const HONDASH_ESP32_SERVICE = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
-const HONDASH_ESP32_CHAR = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+// Known BLE UUIDs for Custom HonDash / ECU Telemetry, Nordic UART & ELM327 Adapters
+const HONDASH_TELEMETRY_SERVICE = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+const HONDASH_TELEMETRY_CHAR = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 
 const NORDIC_UART_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
 const NORDIC_UART_RX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
@@ -49,7 +49,7 @@ export class HonDashDeviceManager {
     this.callbacks = callbacks;
   }
 
-  // Connect via Web Bluetooth (BLE) to HonDash CYD ESP32-S3 or ELM327
+  // Connect via Web Bluetooth (BLE) to OBD-II ELM327 adapter or ECU BLE interface
   async connectBluetooth(): Promise<boolean> {
     if (!this.isWebBluetoothSupported) {
       this.callbacks.onStatusChange(
@@ -60,13 +60,13 @@ export class HonDashDeviceManager {
     }
 
     try {
-      this.callbacks.onStatusChange('connecting', 'Buscando dispositivo Bluetooth HonDash / ESP32-S3...');
+      this.callbacks.onStatusChange('connecting', 'Buscando dispositivo Bluetooth OBD-II / HonDash...');
 
       const navBluetooth = (navigator as unknown as { bluetooth: Bluetooth }).bluetooth;
       const device = await navBluetooth.requestDevice({
         acceptAllDevices: true,
         optionalServices: [
-          HONDASH_ESP32_SERVICE,
+          HONDASH_TELEMETRY_SERVICE,
           NORDIC_UART_SERVICE,
           TI_CC2540_SERVICE,
           ELM327_SERVICE,
@@ -83,7 +83,7 @@ export class HonDashDeviceManager {
         this.callbacks.onStatusChange('disconnected', 'Dispositivo Bluetooth HonDash desconectado.');
       });
 
-      this.callbacks.onStatusChange('connecting', `Conectando ao GATT de ${device.name || 'HonDash ESP32'}...`);
+      this.callbacks.onStatusChange('connecting', `Conectando ao GATT de ${device.name || 'HonDash / OBD-II'}...`);
       const server = await device.gatt?.connect();
       if (!server) {
         throw new Error('Não foi possível conectar ao servidor GATT do dispositivo.');
@@ -92,10 +92,10 @@ export class HonDashDeviceManager {
 
       let connectedChar: BluetoothRemoteGATTCharacteristic | null = null;
 
-      // 1. Try HonDash ESP32 custom characteristic
+      // 1. Try HonDash custom characteristic
       try {
-        const service = await server.getPrimaryService(HONDASH_ESP32_SERVICE);
-        const char = await service.getCharacteristic(HONDASH_ESP32_CHAR);
+        const service = await server.getPrimaryService(HONDASH_TELEMETRY_SERVICE);
+        const char = await service.getCharacteristic(HONDASH_TELEMETRY_CHAR);
         connectedChar = char;
         this.txCharacteristic = char;
       } catch {
@@ -195,7 +195,7 @@ export class HonDashDeviceManager {
     }
   }
 
-  // Connect via Web Serial (USB) to CYD ESP32-S3 board
+  // Connect via Web Serial (USB) to ECU / OBD interface
   async connectSerial(baudRate = 115200): Promise<boolean> {
     if (!this.isWebSerialSupported) {
       this.callbacks.onStatusChange(
@@ -206,14 +206,14 @@ export class HonDashDeviceManager {
     }
 
     try {
-      this.callbacks.onStatusChange('connecting', 'Selecione a porta Serial USB da plaquinha CYD ESP32-S3...');
+      this.callbacks.onStatusChange('connecting', 'Selecione a porta Serial USB da interface ECU / OBD...');
       const serialApi = (navigator as unknown as { serial: { requestPort: () => Promise<SerialPort> } }).serial;
       const port = await serialApi.requestPort();
       await port.open({ baudRate });
       this.serialPort = port;
 
       this.status = 'connected';
-      this.callbacks.onStatusChange('connected', 'Conectado via USB Serial na plaquinha Freenove ESP32-S3!');
+      this.callbacks.onStatusChange('connected', 'Conectado via USB Serial na interface do veículo!');
 
       this.readSerialStream(port);
       this.initObdAndStartPolling();
@@ -249,7 +249,7 @@ export class HonDashDeviceManager {
     }
   }
 
-  // Write text command to BLE or WebSerial device (ELM327 / ESP32)
+  // Write text command to BLE or WebSerial device (ELM327 / ECU)
   async sendCommand(command: string): Promise<boolean> {
     const payload = command.endsWith('\r') || command.endsWith('\n') ? command : command + '\r';
     const encoder = new TextEncoder();
@@ -364,7 +364,7 @@ export class HonDashDeviceManager {
   private parseIncomingData(raw: string) {
     if (!raw || raw.length === 0) return;
 
-    // 1. JSON Telemetry Packet from HonDash ESP32-S3
+    // 1. JSON Telemetry Packet from HonDash / ECU
     if (raw.startsWith('{') && raw.endsWith('}')) {
       try {
         const parsed = JSON.parse(raw);

@@ -46,7 +46,7 @@ export const UpdateCheckModal: React.FC<UpdateCheckModalProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 800));
       setCheckResult({
         status: 'sync_success',
-        message: 'Verificação concluída. Todos os módulos da ECU, assets do Civic 1999 e firmwares ESP32 estão sincronizados.',
+        message: 'Verificação concluída. Todos os módulos da ECU, telemetria e assets do Civic 1999 estão sincronizados.',
         checkedAt: new Date().toLocaleTimeString()
       });
     } catch (e) {
@@ -117,7 +117,7 @@ export const UpdateCheckModal: React.FC<UpdateCheckModalProps> = ({
               <span className="text-zinc-400">HARDWARE</span>
               <span className="text-zinc-300 font-bold flex items-center gap-1">
                 <Cpu className="w-3 h-3 text-amber-400" />
-                CYD 240x320 / ESP32
+                Painel Digital Web / OBD
               </span>
             </div>
           </div>

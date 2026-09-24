@@ -4,12 +4,6 @@ import { CAR_PRESETS, THEME_COLORS } from '../utils/carPresets';
 import { HondaBrandLogo } from './HondaBrandLogos';
 import { saveVehicleImage, deleteVehicleImage, downloadVehicleMedia } from '../utils/vehicleImageStorage';
 import {
-  FREENOVE_ESP32S3_PINOUT_CODE,
-  FREENOVE_MAIN_CPP_CODE,
-  FREENOVE_PLATFORMIO_INI,
-  downloadFirmwareFile
-} from '../utils/esp32FirmwareExporter';
-import {
   X,
   Palette,
   Bluetooth,
@@ -30,7 +24,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 
-export type SettingsTabType = 'customization' | 'connection' | 'esp32_guide' | 'updates';
+export type SettingsTabType = 'customization' | 'connection' | 'updates';
 
 interface SettingsModalProps {
   settings: AppSettings;
@@ -44,8 +38,6 @@ interface SettingsModalProps {
   isOnline: boolean;
   onCheckUpdates: () => void;
   initialTab?: SettingsTabType;
-  onOpenLvglExport?: () => void;
-  onOpenYamlExport?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -59,9 +51,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   bleMessage,
   isOnline,
   onCheckUpdates,
-  initialTab = 'customization',
-  onOpenLvglExport,
-  onOpenYamlExport
+  initialTab = 'customization'
 }) => {
   const [activeTab, setActiveTab] = useState<SettingsTabType>(initialTab);
   const [formData, setFormData] = useState<AppSettings>({ ...settings });
@@ -70,8 +60,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [customUrlInput, setCustomUrlInput] = useState<string>('');
   const [bootLogoNotice, setBootLogoNotice] = useState<string>('');
   const [customBootUrlInput, setCustomBootUrlInput] = useState<string>('');
-  const [cCodeFileTab, setCCodeFileTab] = useState<'main.cpp' | 'freenove_pinout.h' | 'platformio.ini'>('main.cpp');
-  const [copyCodeNotice, setCopyCodeNotice] = useState<string>('');
 
   const carFileInputRef = useRef<HTMLInputElement | null>(null);
   const bootLogoFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -244,12 +232,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       label: 'Bluetooth & OBD',
       icon: Bluetooth,
       description: 'Pareamento BLE, Serial e Wi-Fi'
-    },
-    {
-      id: 'esp32_guide' as SettingsTabType,
-      label: 'Freenove ESP32-S3',
-      icon: Cpu,
-      description: 'Código C++, LVGL e Guia'
     },
     {
       id: 'updates' as SettingsTabType,
@@ -586,7 +568,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="flex items-center justify-between bg-zinc-900/40 p-2 sm:p-3 rounded-lg sm:rounded-xl border border-zinc-800/80 gap-2">
                     <div>
                       <span className="font-bold text-white block text-xs sm:text-sm">Efeito Scanlines LCD</span>
-                      <span className="text-[9px] sm:text-xs text-zinc-400">Textura sutil de display automotivo CYD.</span>
+                      <span className="text-[9px] sm:text-xs text-zinc-400">Textura sutil de display digital esportivo (scanlines).</span>
                     </div>
                     <input
                       type="checkbox"
@@ -848,7 +830,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <div>
                         <span className="font-bold text-white block text-xs sm:text-sm">Web Bluetooth (BLE)</span>
                         <span className="text-[10px] sm:text-xs text-zinc-400">
-                          Pareia diretamente com ESP32-S3 BLE, HonDash ou OBD2 ELM327.
+                          Pareia diretamente com adaptador OBD-II ELM327 Bluetooth ou interface ECU.
                         </span>
                       </div>
                     </div>
@@ -874,11 +856,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="bg-zinc-900/60 p-3 sm:p-4 rounded-xl border border-zinc-800 space-y-2.5 sm:space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div className="flex items-center space-x-2.5">
-                      <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
+                      <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
                       <div>
-                        <span className="font-bold text-white block text-xs sm:text-sm">USB Serial (CYD ESP32-S3)</span>
+                        <span className="font-bold text-white block text-xs sm:text-sm">USB Serial (Interface ECU / OBD)</span>
                         <span className="text-[10px] sm:text-xs text-zinc-400">
-                          Conecta via cabo USB na porta COM da plaquinha CYD (baudrate 115200).
+                          Conecta diretamente via cabo USB na porta serial COM (baudrate 115200).
                         </span>
                       </div>
                     </div>
@@ -895,12 +877,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="bg-zinc-900/60 p-3 sm:p-4 rounded-xl border border-zinc-800 space-y-2">
                   <div className="flex items-center space-x-2">
                     <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0" />
-                    <span className="font-bold text-white text-xs sm:text-sm">IP Local Wi-Fi do ESP32-S3</span>
+                    <span className="font-bold text-white text-xs sm:text-sm">IP Local Wi-Fi da Interface ECU</span>
                   </div>
                   <input
                     type="text"
-                    value={formData.wifiEsp32Ip || '192.168.4.1'}
-                    onChange={(e) => handleUpdate('wifiEsp32Ip', e.target.value)}
+                    value={formData.wifiIp || '192.168.4.1'}
+                    onChange={(e) => handleUpdate('wifiIp', e.target.value)}
                     placeholder="192.168.4.1 ou 192.168.1.150"
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 sm:p-2.5 text-white font-mono-dash text-xs sm:text-sm"
                   />
@@ -908,188 +890,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            {/* 3. ABA GUIA & CÓDIGO C / LVGL FREENOVE ESP32-S3 */}
-            {activeTab === 'esp32_guide' && (
-              <div className="space-y-3 sm:space-y-5 text-xs font-mono-dash">
-                {/* Hardware Spec Card */}
-                <div className="p-3 sm:p-4 bg-zinc-900/90 border border-zinc-700 rounded-xl space-y-2.5 sm:space-y-3 shadow-lg">
-                  <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-zinc-800 pb-2.5">
-                    <div className="flex items-center space-x-2">
-                      <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0" />
-                      <div>
-                        <span className="font-bold text-white text-xs sm:text-sm block">
-                          ESP32-S3 CYD 240x320
-                        </span>
-                        <span className="text-[9px] sm:text-[11px] text-zinc-400">
-                          Dual-Core 240MHz | 240x320 IPS | Touch Capacitivo
-                        </span>
-                      </div>
-                    </div>
-                    <span className="px-1.5 py-0.5 bg-cyan-950/80 border border-cyan-700 text-cyan-300 text-[8px] sm:text-[10px] font-bold rounded">
-                      LVGL v8/v9 C/C++
-                    </span>
-                  </div>
-
-                  {/* Complete LVGL Export Action */}
-                  {onOpenLvglExport && (
-                    <div className="p-2.5 bg-cyan-950/40 border border-cyan-500/50 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                      <div>
-                        <span className="text-white font-bold block text-xs">Conversão Completa em LVGL (C/C++)</span>
-                        <span className="text-[10px] text-cyan-200/80">Código em C com 4 quadrantes, widgets, fontes e telemetria pronto para flash.</span>
-                      </div>
-                      <button
-                        onClick={onOpenLvglExport}
-                        className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg transition-all cursor-pointer shadow-md flex items-center gap-1.5 shrink-0"
-                      >
-                        <Cpu className="w-3.5 h-3.5" /> ABRIR EXPORTADOR LVGL
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Complete YAML Export Action */}
-                  {onOpenYamlExport && (
-                    <div className="p-2.5 bg-amber-950/30 border border-amber-500/50 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                      <div>
-                        <span className="text-white font-bold block text-xs">Conversão Declarativa em YAML</span>
-                        <span className="text-[10px] text-amber-200/80">Configuração ESPHome LVGL, OpenHASP, Home Assistant e arquitetura master.</span>
-                      </div>
-                      <button
-                        onClick={onOpenYamlExport}
-                        className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg transition-all cursor-pointer shadow-md flex items-center gap-1.5 shrink-0"
-                      >
-                        <Layers className="w-3.5 h-3.5" /> ABRIR EXPORTADOR YAML
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 text-[9px] sm:text-[11px]">
-                    <div className="bg-zinc-950 p-1.5 sm:p-2.5 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-500 block text-[8px] sm:text-[10px]">TELA</span>
-                      <span className="text-white font-bold">ST7789 (240x320)</span>
-                    </div>
-                    <div className="bg-zinc-950 p-1.5 sm:p-2.5 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-500 block text-[8px] sm:text-[10px]">TOUCH</span>
-                      <span className="text-cyan-400 font-bold">Capacitivo I2C</span>
-                    </div>
-                    <div className="bg-zinc-950 p-1.5 sm:p-2.5 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-500 block text-[8px] sm:text-[10px]">MCU</span>
-                      <span className="text-white font-bold">ESP32-S3 240MHz</span>
-                    </div>
-                    <div className="bg-zinc-950 p-1.5 sm:p-2.5 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-500 block text-[8px] sm:text-[10px]">WIRELESS</span>
-                      <span className="text-emerald-400 font-bold">BLE 5.0 + Wi-Fi</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Download Firmware Files */}
-                <div className="p-3 sm:p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-2.5 sm:space-y-3">
-                  <div>
-                    <span className="font-bold text-white block text-xs sm:text-sm">Download do Código C / C++</span>
-                    <span className="text-[9px] sm:text-[11px] text-zinc-400">
-                      Pronto para Arduino IDE, PlatformIO ou ESP-IDF com LVGL.
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-1">
-                    <button
-                      onClick={() => downloadFirmwareFile(FREENOVE_MAIN_CPP_CODE, 'main.cpp')}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer text-[10px] sm:text-xs font-bold"
-                    >
-                      <Download className="w-3 h-3 text-cyan-400" /> main.cpp
-                    </button>
-
-                    <button
-                      onClick={() => downloadFirmwareFile(FREENOVE_ESP32S3_PINOUT_CODE, 'freenove_pinout.h')}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer text-[10px] sm:text-xs font-bold"
-                    >
-                      <Download className="w-3 h-3 text-amber-400" /> pinout.h
-                    </button>
-
-                    <button
-                      onClick={() => downloadFirmwareFile(FREENOVE_PLATFORMIO_INI, 'platformio.ini')}
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors cursor-pointer text-[10px] sm:text-xs font-bold"
-                    >
-                      <Download className="w-3 h-3 text-emerald-400" /> platformio.ini
-                    </button>
-                  </div>
-                </div>
-
-                {/* In-App Code Viewer */}
-                <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
-                  <div className="flex items-center justify-between px-2 sm:px-3 py-1.5 bg-zinc-900 border-b border-zinc-800">
-                    <div className="flex items-center space-x-1">
-                      <button
-                        onClick={() => setCCodeFileTab('main.cpp')}
-                        className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded text-[10px] sm:text-xs transition-colors cursor-pointer ${
-                          cCodeFileTab === 'main.cpp' ? 'bg-zinc-800 text-cyan-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        main.cpp
-                      </button>
-                      <button
-                        onClick={() => setCCodeFileTab('freenove_pinout.h')}
-                        className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded text-[10px] sm:text-xs transition-colors cursor-pointer ${
-                          cCodeFileTab === 'freenove_pinout.h' ? 'bg-zinc-800 text-amber-400 font-bold' : 'text-zinc-400 hover:text-zinc-200'
-                        }`}
-                      >
-                        pinout.h
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        const code = cCodeFileTab === 'main.cpp'
-                          ? FREENOVE_MAIN_CPP_CODE
-                          : cCodeFileTab === 'freenove_pinout.h'
-                          ? FREENOVE_ESP32S3_PINOUT_CODE
-                          : FREENOVE_PLATFORMIO_INI;
-                        navigator.clipboard.writeText(code);
-                        setCopyCodeNotice(`✓ Copiado!`);
-                        setTimeout(() => setCopyCodeNotice(''), 3000);
-                      }}
-                      className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-[9px] sm:text-[11px] transition-colors cursor-pointer"
-                    >
-                      <Copy className="w-3 h-3" />
-                      <span>{copyCodeNotice || 'COPIAR'}</span>
-                    </button>
-                  </div>
-
-                  <div className="p-2 sm:p-3 max-h-48 sm:max-h-64 overflow-y-auto font-mono text-[9px] sm:text-[11px] leading-relaxed text-zinc-300 select-text">
-                    <pre className="whitespace-pre overflow-x-auto">
-                      {cCodeFileTab === 'main.cpp'
-                        ? FREENOVE_MAIN_CPP_CODE
-                        : cCodeFileTab === 'freenove_pinout.h'
-                        ? FREENOVE_ESP32S3_PINOUT_CODE
-                        : FREENOVE_PLATFORMIO_INI}
-                    </pre>
-                  </div>
-                </div>
-
-                {/* Wiring Pinout Table */}
-                <div className="p-3 sm:p-4 bg-zinc-900/80 border border-zinc-800 rounded-xl space-y-2">
-                  <span className="font-bold text-amber-400 text-xs sm:text-sm flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> PINAGEM HONDA CIVIC 99 (K-LINE / 3-PIN DLC)
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 text-[9px] sm:text-[11px]">
-                    <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
-                      <span className="text-cyan-400 font-bold block">GPIO 18 / GPIO 17</span>
-                      <span className="text-zinc-400">K-Line L9637D ECU P28/P30/P72/HonDash.</span>
-                    </div>
-                    <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
-                      <span className="text-amber-400 font-bold block">GPIO 15 (Buzzer)</span>
-                      <span className="text-zinc-400">Alarme sonoro VTEC / Shift Light.</span>
-                    </div>
-                    <div className="bg-black/60 p-2 rounded-lg border border-zinc-800">
-                      <span className="text-emerald-400 font-bold block">5V / GND Pós-Chave</span>
-                      <span className="text-zinc-400">Step-Down 12V ➔ 5V 2A (ACC) do Civic.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 4. ABA ATUALIZAÇÕES & BACKUP */}
+            {/* 3. ABA ATUALIZAÇÕES & BACKUP */}
             {activeTab === 'updates' && (
               <div className="space-y-3 sm:space-y-5">
                 <div className="bg-zinc-900/60 p-3 sm:p-4 rounded-xl border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

@@ -35,7 +35,7 @@
   font-family: 'Rajdhani', sans-serif;
 }
 
-/* Authentic CRT / LCD Scanline & Glitch subtle overlay for CYD display */
+/* Authentic CRT / LCD Scanline & Glitch subtle overlay */
 .dash-scanlines {
   background: linear-gradient(
     to bottom,
@@ -90,7 +90,7 @@
   background: rgba(239, 68, 68, 0.9);
 }
 
-/* Micro-Display Pixel Perfect Rules (ESP32 CYD 240x320 / 320x240) */
+/* Compact Display Pixel Perfect Rules (240x320 / 320x240) */
 @media (max-width: 360px), (max-height: 360px) {
   * {
     letter-spacing: -0.01em;

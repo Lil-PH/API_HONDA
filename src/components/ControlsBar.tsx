@@ -10,9 +10,7 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
-  RefreshCw,
-  Cpu,
-  Layers
+  RefreshCw
 } from 'lucide-react';
 
 interface ControlsBarProps {
@@ -25,8 +23,6 @@ interface ControlsBarProps {
   onConnectBle: () => void;
   isOnline: boolean;
   onCheckUpdates: () => void;
-  onOpenLvglExport?: () => void;
-  onOpenYamlExport?: () => void;
 }
 
 export const ControlsBar: React.FC<ControlsBarProps> = ({
@@ -38,9 +34,7 @@ export const ControlsBar: React.FC<ControlsBarProps> = ({
   bleStatus,
   onConnectBle,
   isOnline,
-  onCheckUpdates,
-  onOpenLvglExport,
-  onOpenYamlExport
+  onCheckUpdates
 }) => {
   const theme = THEME_COLORS[settings.themeColor] || THEME_COLORS.red;
   const [isVisible, setIsVisible] = useState(false);
@@ -181,38 +175,6 @@ export const ControlsBar: React.FC<ControlsBarProps> = ({
                 >
                   {isFullscreen ? <Minimize className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <Maximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                 </button>
-
-                {/* LVGL Embedded C++ Code Exporter */}
-                {onOpenLvglExport && (
-                  <button
-                    onClick={() => {
-                      setIsVisible(false);
-                      onOpenLvglExport();
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white font-bold transition-all cursor-pointer"
-                    style={{ borderColor: `${theme.primary}60` }}
-                    title="Ver e Exportar Código LVGL (C / C++) para ESP32"
-                  >
-                    <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5" style={{ color: theme.primary }} />
-                    <span className="hidden sm:inline">LVGL</span>
-                  </button>
-                )}
-
-                {/* YAML Exporter */}
-                {onOpenYamlExport && (
-                  <button
-                    onClick={() => {
-                      setIsVisible(false);
-                      onOpenYamlExport();
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white font-bold transition-all cursor-pointer"
-                    style={{ borderColor: `${theme.primary}60` }}
-                    title="Ver e Exportar Configurações YAML (ESPHome / OpenHASP / Home Assistant)"
-                  >
-                    <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" />
-                    <span className="hidden sm:inline">YAML</span>
-                  </button>
-                )}
 
                 {/* Settings Menu Button */}
                 <button

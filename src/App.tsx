@@ -6,13 +6,12 @@ import { CyberHudDashboard } from './components/CyberHudDashboard';
 import { ControlsBar } from './components/ControlsBar';
 import { SettingsModal } from './components/SettingsModal';
 import { UpdateCheckModal } from './components/UpdateCheckModal';
-import { LvglExportModal } from './components/LvglExportModal';
-import { YamlExportModal } from './components/YamlExportModal';
 import { HonDashDeviceManager, ConnectionStatus } from './utils/bleService';
 import { playVtecKickSound, playShiftBeep } from './utils/soundEffects';
 import { getVehicleImage, saveVehicleImage } from './utils/vehicleImageStorage';
 
-const STORAGE_KEY = 'hondash_cyd_settings_v1';
+const STORAGE_KEY = 'hondash_settings_v2';
+const LEGACY_STORAGE_KEY = 'hondash_cyd_settings_v1';
 
 const DEFAULT_SETTINGS: AppSettings = {
   themeColor: 'red',
@@ -47,7 +46,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   audioVisualizerSource: 'simulated',
   devicePreset: 'auto',
   connectionMode: 'bluetooth',
-  wifiEsp32Ip: '192.168.4.1',
+  wifiIp: '192.168.4.1',
   showScanlines: true,
   autoCheckUpdates: true
 };
@@ -83,7 +82,7 @@ export default function App() {
   // 1. Settings state (loaded from local storage)
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         return { ...DEFAULT_SETTINGS, ...parsed, enableBootSound: false };
@@ -110,10 +109,8 @@ export default function App() {
   // 2. Boot sequence & presentation state
   const [isBooting, setIsBooting] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settingsInitialTab, setSettingsInitialTab] = useState<'customization' | 'connection' | 'esp32_guide' | 'updates'>('customization');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'customization' | 'connection' | 'updates'>('customization');
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [isLvglModalOpen, setIsLvglModalOpen] = useState(false);
-  const [isYamlModalOpen, setIsYamlModalOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 3. Telemetry State
@@ -307,8 +304,6 @@ export default function App() {
         onConnectBle={handleConnectBluetooth}
         isOnline={isOnline}
         onCheckUpdates={handleCheckUpdates}
-        onOpenLvglExport={() => setIsLvglModalOpen(true)}
-        onOpenYamlExport={() => setIsYamlModalOpen(true)}
       />
 
       {/* Main Display Area */}
@@ -338,7 +333,7 @@ export default function App() {
         />
       </main>
 
-      {/* Settings Modal (1.0 Boot Logo, 2.0 Carro Civic 99, Cores, Sensores, ESP32) */}
+      {/* Settings Modal (Boot Logo, Carro Civic 99, Cores, Sensores, Conexão OBD) */}
       {isSettingsOpen && (
         <SettingsModal
           settings={settings}
@@ -355,14 +350,6 @@ export default function App() {
           isOnline={isOnline}
           onCheckUpdates={handleCheckUpdates}
           initialTab={settingsInitialTab}
-          onOpenLvglExport={() => {
-            setIsSettingsOpen(false);
-            setIsLvglModalOpen(true);
-          }}
-          onOpenYamlExport={() => {
-            setIsSettingsOpen(false);
-            setIsYamlModalOpen(true);
-          }}
         />
       )}
 
@@ -372,22 +359,6 @@ export default function App() {
         onClose={() => setIsUpdateModalOpen(false)}
         settings={settings}
         isOnline={isOnline}
-      />
-
-      {/* LVGL Embedded C / C++ Modal & Code Exporter */}
-      <LvglExportModal
-        isOpen={isLvglModalOpen}
-        onClose={() => setIsLvglModalOpen(false)}
-        settings={settings}
-        onSwitchToYaml={() => setIsYamlModalOpen(true)}
-      />
-
-      {/* YAML Declarative Config & Exporter Modal */}
-      <YamlExportModal
-        isOpen={isYamlModalOpen}
-        onClose={() => setIsYamlModalOpen(false)}
-        settings={settings}
-        onSwitchToLvgl={() => setIsLvglModalOpen(true)}
       />
     </div>
   );

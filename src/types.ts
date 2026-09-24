@@ -69,9 +69,9 @@ export interface AppSettings {
   // Active view & device
   activeLayout: DashboardLayout;
   audioVisualizerSource: 'simulated' | 'microphone' | 'off';
-  devicePreset: 'auto' | 'cyd_esp32_320x240' | 'cyd_esp32_480x320' | 'mobile' | 'desktop';
+  devicePreset: 'auto' | 'compact' | 'mobile' | 'desktop';
   connectionMode: 'simulation' | 'bluetooth' | 'serial' | 'wifi_ws';
-  wifiEsp32Ip: string;
+  wifiIp: string;
   showScanlines: boolean;
   autoCheckUpdates: boolean;
 }
